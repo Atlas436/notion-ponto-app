@@ -1,4 +1,4 @@
-import { Calendar, CalendarHeart, Clock, Download, Printer, RefreshCw, Sparkles, User } from 'lucide-react'
+import { Calendar, CalendarHeart, Clock, Download, FileSpreadsheet, Printer, RefreshCw, Sparkles, User } from 'lucide-react'
 import { getDailyMessage } from '../utils/dailyMessage'
 import { MONTH_NAMES } from '../utils/time'
 
@@ -15,6 +15,8 @@ export default function Header({
   onJornadaPadraoChange,
   showHolidays,
   onToggleHolidays,
+  showGoogleSheets,
+  onToggleGoogleSheets,
   onGenerateReset,
   onExportExcel,
   onExportPdf,
@@ -106,6 +108,19 @@ export default function Header({
             }`}
           >
             <CalendarHeart size={14} /> Feriados
+          </button>
+
+          <button
+            type="button"
+            onClick={onToggleGoogleSheets}
+            aria-pressed={showGoogleSheets}
+            className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-sm font-medium shadow-sm transition-colors ${
+              showGoogleSheets
+                ? 'border-cozy-accent bg-cozy-accent/10 text-cozy-accent'
+                : 'border-cozy-border bg-cozy-panel text-cozy-text hover:bg-cozy-weekend'
+            }`}
+          >
+            <FileSpreadsheet size={14} /> Google Sheets
           </button>
 
           <div className="ml-auto flex flex-wrap gap-2">

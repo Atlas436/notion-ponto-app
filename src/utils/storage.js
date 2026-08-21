@@ -4,6 +4,7 @@ const SETTINGS_KEY = 'cozyPonto.settings'
 const monthKey = (year, month) => `cozyPonto.month.${year}-${String(month).padStart(2, '0')}`
 const holidaysKey = (year) => `cozyPonto.holidays.${year}`
 const RECURRING_HOLIDAYS_KEY = 'cozyPonto.recurringHolidays'
+const GOOGLE_SHEETS_KEY = 'cozyPonto.googleSheets'
 
 export function loadSettings() {
   try {
@@ -81,6 +82,31 @@ export function loadRecurringHolidays() {
 export function saveRecurringHolidays(holidays) {
   try {
     localStorage.setItem(RECURRING_HOLIDAYS_KEY, JSON.stringify(holidays))
+  } catch {
+    // localStorage indisponível — ignora silenciosamente
+  }
+}
+
+// Configuração de sincronização com Google Sheets (Client ID e link/ID da planilha).
+// Não guarda o token de acesso — esse fica só em memória, nunca persiste.
+export function loadGoogleSheetsSettings() {
+  try {
+    const raw = localStorage.getItem(GOOGLE_SHEETS_KEY)
+    if (!raw) return { clientId: '', spreadsheetLink: '', autoSync: false }
+    const parsed = JSON.parse(raw)
+    return {
+      clientId: parsed.clientId ?? '',
+      spreadsheetLink: parsed.spreadsheetLink ?? '',
+      autoSync: Boolean(parsed.autoSync),
+    }
+  } catch {
+    return { clientId: '', spreadsheetLink: '', autoSync: false }
+  }
+}
+
+export function saveGoogleSheetsSettings(settings) {
+  try {
+    localStorage.setItem(GOOGLE_SHEETS_KEY, JSON.stringify(settings))
   } catch {
     // localStorage indisponível — ignora silenciosamente
   }

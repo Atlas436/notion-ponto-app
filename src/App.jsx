@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Header from './components/Header'
 import HolidaysPanel from './components/HolidaysPanel'
+import GoogleSheetsPanel from './components/GoogleSheetsPanel'
 import PontoTable from './components/PontoTable'
 import {
   loadSettings,
@@ -11,10 +12,13 @@ import {
   saveHolidays,
   loadRecurringHolidays,
   saveRecurringHolidays,
+  loadGoogleSheetsSettings,
+  saveGoogleSheetsSettings,
 } from './utils/storage'
 import { getDefaultHolidays, projectRecurringHolidays } from './utils/holidays'
 import { computeRow, generateMonthRows, MONTH_NAMES, parseTimeToMinutes } from './utils/time'
 import { exportToExcel } from './utils/exportExcel'
+import { extractSpreadsheetId, requestAccessToken, syncToGoogleSheet } from './utils/googleSheets'
 
 const today = new Date()
 const initialSettings = loadSettings()
@@ -34,6 +38,16 @@ export default function App() {
   const [recurringHolidays, setRecurringHolidays] = useState(() => loadRecurringHolidays())
   const [showHolidays, setShowHolidays] = useState(false)
 
+  const initialSheetsSettings = useMemo(() => loadGoogleSheetsSettings(), [])
+  const [sheetsClientId, setSheetsClientId] = useState(initialSheetsSettings.clientId)
+  const [sheetsLink, setSheetsLink] = useState(initialSheetsSettings.spreadsheetLink)
+  const [sheetsAutoSync, setSheetsAutoSync] = useState(initialSheetsSettings.autoSync)
+  const [sheetsAccessToken, setSheetsAccessToken] = useState(null)
+  const [sheetsStatus, setSheetsStatus] = useState('idle') // idle | connecting | syncing | success | error
+  const [sheetsError, setSheetsError] = useState('')
+  const [sheetsLastSyncedAt, setSheetsLastSyncedAt] = useState(null)
+  const [showGoogleSheets, setShowGoogleSheets] = useState(false)
+
   // Lista exibida/usada nos cálculos: feriados do ano + recorrentes projetados sobre o ano.
   const displayHolidays = useMemo(() => {
     const combined = [...holidays, ...projectRecurringHolidays(recurringHolidays, ano)]
@@ -47,6 +61,10 @@ export default function App() {
   useEffect(() => {
     saveSettings({ colaborador, jornadaPadrao })
   }, [colaborador, jornadaPadrao])
+
+  useEffect(() => {
+    saveGoogleSheetsSettings({ clientId: sheetsClientId, spreadsheetLink: sheetsLink, autoSync: sheetsAutoSync })
+  }, [sheetsClientId, sheetsLink, sheetsAutoSync])
 
   useEffect(() => {
     // Resolve os feriados do ano primeiro (síncrono, sem depender do state antigo) para
@@ -181,6 +199,63 @@ export default function App() {
       .save()
   }
 
+  async function syncNow(token) {
+    const spreadsheetId = extractSpreadsheetId(sheetsLink)
+    if (!spreadsheetId) {
+      setSheetsStatus('error')
+      setSheetsError('Cole o link ou o ID da planilha antes de sincronizar.')
+      return
+    }
+    setSheetsStatus('syncing')
+    try {
+      await syncToGoogleSheet({
+        spreadsheetId,
+        accessToken: token,
+        colaborador: colaborador || 'Colaborador',
+        monthName: MONTH_NAMES[mes - 1],
+        ano,
+        computedRows,
+        totalMinutes,
+        totalExtraMinutes,
+      })
+      setSheetsStatus('success')
+      setSheetsError('')
+      setSheetsLastSyncedAt(new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))
+    } catch (err) {
+      setSheetsStatus('error')
+      setSheetsError(err.message)
+    }
+  }
+
+  async function handleConnectGoogle() {
+    setSheetsStatus('connecting')
+    setSheetsError('')
+    try {
+      const token = await requestAccessToken(sheetsClientId)
+      setSheetsAccessToken(token)
+      await syncNow(token)
+    } catch (err) {
+      setSheetsStatus('error')
+      setSheetsError(err.message)
+    }
+  }
+
+  function handleSyncNow() {
+    if (!sheetsAccessToken) return
+    syncNow(sheetsAccessToken)
+  }
+
+  // Sincronização automática: espera 2s sem novas edições antes de mandar pro Google Sheets,
+  // pra não estourar a cota da API a cada tecla digitada.
+  useEffect(() => {
+    if (!sheetsAutoSync || !sheetsAccessToken) return
+    const timeout = setTimeout(() => {
+      syncNow(sheetsAccessToken)
+    }, 2000)
+    return () => clearTimeout(timeout)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [computedRows, totalMinutes, totalExtraMinutes, sheetsAutoSync, sheetsAccessToken])
+
   return (
     <div className="min-h-screen bg-cozy-bg pb-16">
       <Header
@@ -194,6 +269,8 @@ export default function App() {
         onJornadaPadraoChange={setJornadaPadrao}
         showHolidays={showHolidays}
         onToggleHolidays={() => setShowHolidays((v) => !v)}
+        showGoogleSheets={showGoogleSheets}
+        onToggleGoogleSheets={() => setShowGoogleSheets((v) => !v)}
         onGenerateReset={handleGenerateReset}
         onExportExcel={handleExportExcel}
         onExportPdf={handleExportPdf}
@@ -207,6 +284,23 @@ export default function App() {
             onToggle={toggleHoliday}
             onRemove={removeHoliday}
             onAdd={addHoliday}
+          />
+        )}
+
+        {showGoogleSheets && (
+          <GoogleSheetsPanel
+            clientId={sheetsClientId}
+            onClientIdChange={setSheetsClientId}
+            spreadsheetLink={sheetsLink}
+            onSpreadsheetLinkChange={setSheetsLink}
+            autoSync={sheetsAutoSync}
+            onAutoSyncChange={setSheetsAutoSync}
+            connected={Boolean(sheetsAccessToken)}
+            status={sheetsStatus}
+            lastSyncedAt={sheetsLastSyncedAt}
+            errorMessage={sheetsError}
+            onConnect={handleConnectGoogle}
+            onSyncNow={handleSyncNow}
           />
         )}
 

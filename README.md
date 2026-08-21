@@ -20,6 +20,7 @@ Um controle de ponto minimalista e aconchegante, com visual lo-fi inspirado no N
 - **Exportação para Excel (.xlsx)** com relatório organizado (dados + totais).
 - **Exportação para PDF / Impressão** de um relatório mensal de ponto pronto para imprimir.
 - **Visual cozy/lo-fi**: paleta pastel (lavanda, sálvia e terracota), cantos arredondados, ícones minimalistas (Lucide) e uma frase de acolhimento que muda todo dia no topo do painel.
+- **Sincronização opcional com Google Sheets** (botão "Google Sheets" no cabeçalho): manda uma cópia do mês atual pra uma planilha do Google que você já compartilhou com quem precisar acompanhar — sincronização manual ou automática a cada edição. Totalmente opcional: sem configurar nada, o app continua 100% local. Veja a seção [Sincronização com Google Sheets](#-sincronização-com-google-sheets-opcional) abaixo.
 
 ## 🚀 Como rodar localmente
 
@@ -118,6 +119,48 @@ Além do deploy manual, o repositório já inclui o workflow `.github/workflows/
 
 Ele dispara a cada push na branch `main` (ajuste o nome no arquivo do workflow se a branch padrão do seu repositório for outra) e também pode ser executado manualmente pela aba **Actions** do GitHub (botão "Run workflow"). Não é necessário configurar nenhum secret adicional — o workflow usa o `GITHUB_TOKEN` padrão do repositório.
 
+## 🔗 Sincronização com Google Sheets (opcional)
+
+Por padrão, o Cozy Ponto é 100% local: nada é enviado pra lugar nenhum. Se você quiser que outra pessoa (ex.: sua
+chefe) acompanhe seus registros direto pelo Google Sheets — ferramenta que ela já usa —, dá pra ligar uma
+sincronização opcional que manda uma cópia do mês atual pra uma planilha do Google.
+
+Como funciona: você continua usando o Cozy Ponto normalmente; a cada sincronização (manual ou automática), ele
+sobrescreve uma aba chamada "Cozy Ponto" dentro da planilha que você escolheu, com os dados do mês selecionado.
+Quem tiver acesso a essa planilha no Google Sheets vê a atualização ao vivo, sem precisar abrir o site.
+
+Isso exige duas coisas suas, feitas uma única vez:
+
+### 1. Criar e compartilhar a planilha
+
+1. Crie uma planilha nova em [sheets.google.com](https://sheets.google.com).
+2. Compartilhe com o e-mail de quem você quer que acompanhe (permissão de **leitura** já basta pra quem só vai olhar).
+3. Copie o link da planilha — você vai colar ele no app.
+
+### 2. Criar um Client ID OAuth gratuito (Google Cloud Console)
+
+Isso é necessário porque o Google exige que qualquer app se identifique antes de poder escrever numa planilha em
+seu nome — é um passo de segurança do próprio Google, leva uns 5 minutos e só precisa ser feito uma vez.
+
+1. Acesse o [Google Cloud Console](https://console.cloud.google.com/) e crie um projeto novo (gratuito).
+2. Em **APIs e serviços → Biblioteca**, ative a **Google Sheets API**.
+3. Em **APIs e serviços → Tela de consentimento OAuth**, configure como "Externo" e modo "Testing" (não precisa de
+   aprovação do Google pra uso pessoal/pequena equipe) — adicione seu e-mail (e o de quem for usar) como usuário de teste.
+4. Em **APIs e serviços → Credenciais → Criar credenciais → ID do cliente OAuth**, escolha tipo **Aplicativo da Web** e
+   em **Origens JavaScript autorizadas** adicione a URL do site (ex.: `https://<seu-usuario>.github.io`).
+5. Copie o **Client ID** gerado (termina em `.apps.googleusercontent.com`).
+
+### 3. Usar no app
+
+1. Abra o Cozy Ponto e clique em **"Google Sheets"** no cabeçalho.
+2. Cole o **Client ID** e o **link da planilha** nos campos correspondentes.
+3. Clique em **"Conectar com Google"** e autorize o acesso na janela que abrir.
+4. Clique em **"Sincronizar agora"** sempre que quiser atualizar, ou marque **"Sincronizar automaticamente a cada
+   edição"** pra ficar praticamente em tempo real (com um pequeno atraso de ~2s após parar de digitar).
+
+O Client ID e o link da planilha ficam salvos no seu navegador; o token de acesso do Google **não** é salvo em
+disco — expira sozinho depois de um tempo e você reconecta clicando no mesmo botão.
+
 ## 🧱 Tecnologias
 
 - [React](https://react.dev/) + [Vite](https://vitejs.dev/)
@@ -127,6 +170,7 @@ Ele dispara a cada push na branch `main` (ajuste o nome no arquivo do workflow s
 - [html2pdf.js](https://github.com/eKoopmans/html2pdf.js) para exportação em PDF
 - [Vitest](https://vitest.dev/) para testes automatizados
 - [gh-pages](https://github.com/tschaub/gh-pages) + GitHub Actions para deploy no GitHub Pages
+- [Google Identity Services](https://developers.google.com/identity/gsi/web) + [Google Sheets API](https://developers.google.com/sheets/api) para a sincronização opcional
 
 ## 📄 Licença
 
