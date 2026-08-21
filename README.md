@@ -58,7 +58,17 @@ Um controle de ponto minimalista e aconchegante, com visual inspirado no Notion 
 | `npm run build`    | Gera a versão de produção do projeto            |
 | `npm run preview`  | Serve localmente a build de produção            |
 | `npm run lint`     | Executa o ESLint no código-fonte                |
+| `npm run test`      | Roda a suíte de testes automatizados (Vitest)   |
+| `npm run test:watch`| Roda os testes em modo watch, reexecutando a cada alteração |
 | `npm run deploy`   | Builda e publica o app no GitHub Pages (branch `gh-pages`) |
+
+## ✅ Testes
+
+A lógica de cálculo de horas (entrada/saída, total trabalhado, horas extras e a regra especial de fim de semana) é coberta por testes automatizados com [Vitest](https://vitest.dev/), em `src/utils/time.test.js`.
+
+```bash
+npm run test
+```
 
 ## 📦 Deploy no GitHub Pages
 
@@ -95,6 +105,17 @@ O projeto já vem configurado para publicação no [GitHub Pages](https://pages.
 
 5. Para publicar novas atualizações, basta rodar `npm run deploy` novamente sempre que quiser atualizar o site publicado.
 
+### Deploy automático via GitHub Actions
+
+Além do deploy manual, o repositório já inclui o workflow `.github/workflows/deploy.yml`, que automaticamente:
+
+1. Instala as dependências (`npm ci`);
+2. Roda a suíte de testes (`npm run test`);
+3. Builda o projeto (`npm run build`);
+4. Publica o conteúdo de `dist/` na branch `gh-pages`.
+
+Ele dispara a cada push na branch `main` (ajuste o nome no arquivo do workflow se a branch padrão do seu repositório for outra) e também pode ser executado manualmente pela aba **Actions** do GitHub (botão "Run workflow"). Não é necessário configurar nenhum secret adicional — o workflow usa o `GITHUB_TOKEN` padrão do repositório.
+
 ## 🧱 Tecnologias
 
 - [React](https://react.dev/) + [Vite](https://vitejs.dev/)
@@ -102,6 +123,8 @@ O projeto já vem configurado para publicação no [GitHub Pages](https://pages.
 - [Lucide Icons](https://lucide.dev/)
 - [xlsx (SheetJS)](https://github.com/SheetJS/sheetjs) para exportação em Excel
 - [html2pdf.js](https://github.com/eKoopmans/html2pdf.js) para exportação em PDF
+- [Vitest](https://vitest.dev/) para testes automatizados
+- [gh-pages](https://github.com/tschaub/gh-pages) + GitHub Actions para deploy no GitHub Pages
 
 ## 📄 Licença
 

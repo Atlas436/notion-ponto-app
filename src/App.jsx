@@ -30,7 +30,6 @@ export default function App() {
       setRows(generated)
       saveMonthRows(ano, mes, generated)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ano, mes])
 
   const jornadaPadraoMinutes = useMemo(() => parseTimeToMinutes(jornadaPadrao) ?? 240, [jornadaPadrao])
