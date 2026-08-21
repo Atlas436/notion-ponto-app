@@ -3,6 +3,8 @@ import { formatDateBR, minutesToTime } from './time'
 const GIS_SRC = 'https://accounts.google.com/gsi/client'
 const SHEETS_SCOPE = 'https://www.googleapis.com/auth/spreadsheets'
 const SHEET_TAB = 'Cozy Ponto'
+const HEADER_COLUMNS = 7 // Data, Dia, Entrada, Saída, Total, Extras, Descrição
+const MAX_FORMAT_ROWS = 400 // generoso o bastante pra qualquer mês + título/rodapé
 
 let gisLoadPromise = null
 
@@ -70,15 +72,17 @@ async function sheetsFetch(path, accessToken, options = {}) {
   return res.json()
 }
 
+// Garante que a aba "Cozy Ponto" existe e devolve o sheetId dela (necessário pra formatação).
 async function ensureSheetTab(spreadsheetId, accessToken) {
   const data = await sheetsFetch(`${spreadsheetId}?fields=sheets.properties`, accessToken)
-  const exists = data.sheets?.some((s) => s.properties.title === SHEET_TAB)
-  if (!exists) {
-    await sheetsFetch(`${spreadsheetId}:batchUpdate`, accessToken, {
-      method: 'POST',
-      body: JSON.stringify({ requests: [{ addSheet: { properties: { title: SHEET_TAB } } }] }),
-    })
-  }
+  const existing = data.sheets?.find((s) => s.properties.title === SHEET_TAB)
+  if (existing) return existing.properties.sheetId
+
+  const created = await sheetsFetch(`${spreadsheetId}:batchUpdate`, accessToken, {
+    method: 'POST',
+    body: JSON.stringify({ requests: [{ addSheet: { properties: { title: SHEET_TAB } } }] }),
+  })
+  return created.replies[0].addSheet.properties.sheetId
 }
 
 export function buildSheetValues({ colaborador, monthName, ano, computedRows, totalMinutes, totalExtraMinutes }) {
@@ -105,21 +109,140 @@ export function buildSheetValues({ colaborador, monthName, ano, computedRows, to
   ]
 }
 
+function hexToColor(hex) {
+  const clean = hex.replace('#', '')
+  return {
+    red: parseInt(clean.substring(0, 2), 16) / 255,
+    green: parseInt(clean.substring(2, 4), 16) / 255,
+    blue: parseInt(clean.substring(4, 6), 16) / 255,
+  }
+}
+
+// Mesma paleta cozy pastel do app (tailwind.config.js), convertida pro formato de cor do Sheets.
+const COLORS = {
+  text: hexToColor('#453C4E'),
+  muted: hexToColor('#8C8296'),
+  headerBg: hexToColor('#EDE7F6'),
+  extra: hexToColor('#B85C3F'),
+  weekendBg: hexToColor('#EFF3E9'),
+  holidayBg: hexToColor('#FBEAF2'),
+}
+
+// Monta as requisições de formatação (cores, negrito, colunas, congelar cabeçalho) pra ficar
+// parecido com o visual do app. Sempre começa resetando o range inteiro, pra não sobrar
+// formatação de um mês anterior com mais linhas que o atual.
+export function buildFormattingRequests(sheetId, computedRows) {
+  const headerRowIndex = 3
+  const firstDataRowIndex = 4
+  const footerRowIndex = firstDataRowIndex + computedRows.length + 1
+
+  const requests = [
+    {
+      repeatCell: {
+        range: { sheetId, startRowIndex: 0, endRowIndex: MAX_FORMAT_ROWS, startColumnIndex: 0, endColumnIndex: HEADER_COLUMNS },
+        cell: { userEnteredFormat: {} },
+        fields: 'userEnteredFormat',
+      },
+    },
+    {
+      updateSheetProperties: {
+        properties: { sheetId, gridProperties: { frozenRowCount: firstDataRowIndex } },
+        fields: 'gridProperties.frozenRowCount',
+      },
+    },
+    ...[
+      { col: 0, width: 100 },
+      { col: 1, width: 90 },
+      { col: 2, width: 70 },
+      { col: 3, width: 70 },
+      { col: 4, width: 130 },
+      { col: 5, width: 110 },
+      { col: 6, width: 320 },
+    ].map(({ col, width }) => ({
+      updateDimensionProperties: {
+        range: { sheetId, dimension: 'COLUMNS', startIndex: col, endIndex: col + 1 },
+        properties: { pixelSize: width },
+        fields: 'pixelSize',
+      },
+    })),
+    { mergeCells: { range: { sheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: HEADER_COLUMNS }, mergeType: 'MERGE_ALL' } },
+    { mergeCells: { range: { sheetId, startRowIndex: 1, endRowIndex: 2, startColumnIndex: 0, endColumnIndex: HEADER_COLUMNS }, mergeType: 'MERGE_ALL' } },
+    {
+      repeatCell: {
+        range: { sheetId, startRowIndex: 0, endRowIndex: 1, startColumnIndex: 0, endColumnIndex: HEADER_COLUMNS },
+        cell: { userEnteredFormat: { textFormat: { bold: true, fontSize: 14, foregroundColor: COLORS.text } } },
+        fields: 'userEnteredFormat.textFormat',
+      },
+    },
+    {
+      repeatCell: {
+        range: { sheetId, startRowIndex: 1, endRowIndex: 2, startColumnIndex: 0, endColumnIndex: HEADER_COLUMNS },
+        cell: { userEnteredFormat: { textFormat: { italic: true, foregroundColor: COLORS.muted } } },
+        fields: 'userEnteredFormat.textFormat',
+      },
+    },
+    {
+      repeatCell: {
+        range: { sheetId, startRowIndex: headerRowIndex, endRowIndex: headerRowIndex + 1, startColumnIndex: 0, endColumnIndex: HEADER_COLUMNS },
+        cell: { userEnteredFormat: { backgroundColor: COLORS.headerBg, textFormat: { bold: true, foregroundColor: COLORS.text } } },
+        fields: 'userEnteredFormat(backgroundColor,textFormat)',
+      },
+    },
+    {
+      repeatCell: {
+        range: { sheetId, startRowIndex: footerRowIndex, endRowIndex: footerRowIndex + 1, startColumnIndex: 0, endColumnIndex: HEADER_COLUMNS },
+        cell: { userEnteredFormat: { backgroundColor: COLORS.headerBg, textFormat: { bold: true, foregroundColor: COLORS.text } } },
+        fields: 'userEnteredFormat(backgroundColor,textFormat)',
+      },
+    },
+  ]
+
+  computedRows.forEach((row, i) => {
+    const rowIndex = firstDataRowIndex + i
+    const backgroundColor = row.holidayName ? COLORS.holidayBg : row.weekend ? COLORS.weekendBg : null
+    if (backgroundColor) {
+      requests.push({
+        repeatCell: {
+          range: { sheetId, startRowIndex: rowIndex, endRowIndex: rowIndex + 1, startColumnIndex: 0, endColumnIndex: HEADER_COLUMNS },
+          cell: { userEnteredFormat: { backgroundColor } },
+          fields: 'userEnteredFormat.backgroundColor',
+        },
+      })
+    }
+    if (row.extraMinutes > 0) {
+      requests.push({
+        repeatCell: {
+          range: { sheetId, startRowIndex: rowIndex, endRowIndex: rowIndex + 1, startColumnIndex: 5, endColumnIndex: 6 },
+          cell: { userEnteredFormat: { textFormat: { bold: true, foregroundColor: COLORS.extra } } },
+          fields: 'userEnteredFormat.textFormat',
+        },
+      })
+    }
+  })
+
+  return requests
+}
+
 export async function syncToGoogleSheet({ spreadsheetId, accessToken, ...reportData }) {
-  await ensureSheetTab(spreadsheetId, accessToken)
+  const sheetId = await ensureSheetTab(spreadsheetId, accessToken)
 
   const values = buildSheetValues(reportData)
-  const range = `${SHEET_TAB}!A1`
 
-  // Limpa a aba antes de escrever, pra não sobrar lixo de um mês com mais linhas que o atual.
-  await sheetsFetch(`${spreadsheetId}/values/${encodeURIComponent(range)}:clear`, accessToken, { method: 'POST' })
+  // Limpa a aba inteira antes de escrever, pra não sobrar lixo de um mês com mais linhas que o atual.
+  await sheetsFetch(`${spreadsheetId}/values/${encodeURIComponent(SHEET_TAB)}:clear`, accessToken, { method: 'POST' })
 
+  const writeRange = `${SHEET_TAB}!A1`
   await sheetsFetch(
-    `${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
+    `${spreadsheetId}/values/${encodeURIComponent(writeRange)}?valueInputOption=USER_ENTERED`,
     accessToken,
     {
       method: 'PUT',
-      body: JSON.stringify({ range, majorDimension: 'ROWS', values }),
+      body: JSON.stringify({ range: writeRange, majorDimension: 'ROWS', values }),
     },
   )
+
+  await sheetsFetch(`${spreadsheetId}:batchUpdate`, accessToken, {
+    method: 'POST',
+    body: JSON.stringify({ requests: buildFormattingRequests(sheetId, reportData.computedRows) }),
+  })
 }
