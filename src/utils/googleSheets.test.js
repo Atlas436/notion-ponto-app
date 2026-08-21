@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { buildFormattingRequests, buildSheetValues, extractSpreadsheetId } from './googleSheets'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { buildFormattingRequests, buildSheetValues, extractSpreadsheetId, syncToGoogleSheet } from './googleSheets'
 
 describe('extractSpreadsheetId', () => {
   it('extrai o ID de um link completo do Google Sheets', () => {
@@ -132,5 +132,71 @@ describe('buildFormattingRequests', () => {
     // linhas 0 (45min) e 1 (180min) têm extra > 0 -> 2 requisições; linhas 2 e 3 não têm
     expect(extraRequests).toHaveLength(2)
     expect(extraRequests.map((r) => r.repeatCell.range.startRowIndex).sort()).toEqual([4, 5])
+  })
+})
+
+describe('syncToGoogleSheet', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('escreve os valores com valueInputOption=RAW, nunca USER_ENTERED', async () => {
+    // USER_ENTERED faz o Sheets "adivinhar" tipo e converter "17:30"/"04:00" pro número
+    // serial de hora/data dele (foi exatamente o bug visto em produção) — precisa ser RAW.
+    const calledUrls = []
+    const fetchMock = vi.fn(async (url, options) => {
+      calledUrls.push({ url: String(url), method: options?.method })
+      if (String(url).includes('?fields=sheets.properties')) {
+        return { ok: true, json: async () => ({ sheets: [{ properties: { title: 'Cozy Ponto', sheetId: 999 } }] }) }
+      }
+      return { ok: true, json: async () => ({}) }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await syncToGoogleSheet({
+      spreadsheetId: 'sheet123',
+      accessToken: 'token123',
+      colaborador: 'Julia',
+      monthName: 'Agosto',
+      ano: 2026,
+      computedRows: [
+        { date: '2026-08-01', weekdayLabel: 'Sáb', holidayName: null, weekend: true, entrada: '', saida: '', totalMinutes: 0, extraMinutes: 0, descricao: '' },
+      ],
+      totalMinutes: 0,
+      totalExtraMinutes: 0,
+    })
+
+    const writeCall = calledUrls.find((c) => c.method === 'PUT')
+    expect(writeCall).toBeDefined()
+    expect(writeCall.url).toContain('valueInputOption=RAW')
+    expect(writeCall.url).not.toContain('USER_ENTERED')
+  })
+
+  it('limpa a aba inteira (não só uma célula) antes de escrever', async () => {
+    const calledUrls = []
+    const fetchMock = vi.fn(async (url) => {
+      calledUrls.push(String(url))
+      if (String(url).includes('?fields=sheets.properties')) {
+        return { ok: true, json: async () => ({ sheets: [{ properties: { title: 'Cozy Ponto', sheetId: 999 } }] }) }
+      }
+      return { ok: true, json: async () => ({}) }
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await syncToGoogleSheet({
+      spreadsheetId: 'sheet123',
+      accessToken: 'token123',
+      colaborador: 'Julia',
+      monthName: 'Agosto',
+      ano: 2026,
+      computedRows: [],
+      totalMinutes: 0,
+      totalExtraMinutes: 0,
+    })
+
+    const clearCall = calledUrls.find((u) => u.includes(':clear'))
+    expect(clearCall).toBeDefined()
+    // A URL da limpeza não deve referenciar uma célula específica como "!A1"
+    expect(clearCall).not.toMatch(/!A1/)
   })
 })

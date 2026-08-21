@@ -232,8 +232,11 @@ export async function syncToGoogleSheet({ spreadsheetId, accessToken, ...reportD
   await sheetsFetch(`${spreadsheetId}/values/${encodeURIComponent(SHEET_TAB)}:clear`, accessToken, { method: 'POST' })
 
   const writeRange = `${SHEET_TAB}!A1`
+  // RAW (não USER_ENTERED): queremos nossos textos ("17:30", "04:00", "02/03/2026") escritos
+  // literalmente. Com USER_ENTERED o Sheets "adivinha" que são hora/data e troca pelo número
+  // serial dele por baixo (ex.: "17:30" virava 0,7291666667), estourando a formatação.
   await sheetsFetch(
-    `${spreadsheetId}/values/${encodeURIComponent(writeRange)}?valueInputOption=USER_ENTERED`,
+    `${spreadsheetId}/values/${encodeURIComponent(writeRange)}?valueInputOption=RAW`,
     accessToken,
     {
       method: 'PUT',
