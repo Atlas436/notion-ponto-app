@@ -13,7 +13,7 @@ Um controle de ponto minimalista e aconchegante, com visual lo-fi inspirado no N
   - Total de horas trabalhadas = saída − entrada.
   - Horas extras = tempo excedente à jornada padrão (nunca negativo — se trabalhar menos que a jornada, mostra `00:00`).
   - Em finais de semana e feriados, todo o tempo registrado conta como hora extra, com um destaque visual.
-- **Painel de Feriados** (botão "Feriados" no cabeçalho): feriados nacionais e o estadual de São Paulo são calculados automaticamente para o ano selecionado (inclusive os móveis, como Carnaval, Sexta-feira Santa e Corpus Christi) e já tratados como dia não-trabalhado. Você pode desmarcar qualquer um que não valha pra você ou adicionar feriados municipais/personalizados.
+- **Painel de Feriados** (botão "Feriados" no cabeçalho): feriados nacionais e o estadual de São Paulo são calculados automaticamente para o ano selecionado (inclusive os móveis, como Carnaval, Sexta-feira Santa e Corpus Christi) e já tratados como dia não-trabalhado. Você pode desmarcar qualquer um que não valha pra você ou adicionar uma data pessoal (aniversário, feriado municipal etc.) — por padrão ela se repete todo ano automaticamente, sem precisar recadastrar.
 - **Fins de semana e feriados destacados** com fundo sutil (tons pastéis diferentes para cada um), no estilo Notion.
 - **Totais do mês** no rodapé da tabela: total de horas trabalhadas e total de horas extras.
 - **Persistência automática** no `localStorage` do navegador — nada é enviado para servidores, os dados ficam salvos por colaborador/mês/ano mesmo depois de fechar a aba.

@@ -66,3 +66,17 @@ export function getDefaultHolidays(year) {
 
   return [...fixed, ...movable].map((h) => ({ ...h, enabled: true, custom: false })).sort((a, b) => (a.date > b.date ? 1 : -1))
 }
+
+// Projeta feriados/datas pessoais recorrentes (guardados só como dia/mês, ex.: aniversário)
+// sobre um ano específico, pra exibir junto com os feriados daquele ano.
+export function projectRecurringHolidays(recurringHolidays, year) {
+  return recurringHolidays.map((r) => ({
+    date: dateKey(year, r.month, r.day),
+    name: r.name,
+    scope: 'pessoal (todo ano)',
+    enabled: r.enabled,
+    custom: true,
+    recurring: true,
+    id: r.id,
+  }))
+}

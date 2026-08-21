@@ -9,25 +9,38 @@ import {
   saveMonthRows,
   loadHolidays,
   saveHolidays,
+  loadRecurringHolidays,
+  saveRecurringHolidays,
 } from './utils/storage'
-import { getDefaultHolidays } from './utils/holidays'
+import { getDefaultHolidays, projectRecurringHolidays } from './utils/holidays'
 import { computeRow, generateMonthRows, MONTH_NAMES, parseTimeToMinutes } from './utils/time'
 import { exportToExcel } from './utils/exportExcel'
 
 const today = new Date()
 const initialSettings = loadSettings()
 
+function activeDatesOf(displayHolidays) {
+  return new Set(displayHolidays.filter((h) => h.enabled).map((h) => h.date))
+}
+
 export default function App() {
   const [colaborador, setColaborador] = useState(initialSettings.colaborador)
   const [jornadaPadrao, setJornadaPadrao] = useState(initialSettings.jornadaPadrao)
   const [mes, setMes] = useState(today.getMonth() + 1)
   const [ano, setAno] = useState(today.getFullYear())
+  // Feriados nacionais/estaduais + personalizados de um-ano-só, guardados por ano.
   const [holidays, setHolidays] = useState(() => loadHolidays(today.getFullYear()) ?? getDefaultHolidays(today.getFullYear()))
+  // Datas pessoais que se repetem todo ano (ex.: aniversário) — guardadas só por dia/mês.
+  const [recurringHolidays, setRecurringHolidays] = useState(() => loadRecurringHolidays())
   const [showHolidays, setShowHolidays] = useState(false)
-  const [rows, setRows] = useState(() => {
-    const activeDates = new Set(holidays.filter((h) => h.enabled).map((h) => h.date))
-    return loadMonthRows(ano, mes) ?? generateMonthRows(ano, mes, activeDates)
-  })
+
+  // Lista exibida/usada nos cálculos: feriados do ano + recorrentes projetados sobre o ano.
+  const displayHolidays = useMemo(() => {
+    const combined = [...holidays, ...projectRecurringHolidays(recurringHolidays, ano)]
+    return combined.sort((a, b) => (a.date > b.date ? 1 : -1))
+  }, [holidays, recurringHolidays, ano])
+
+  const [rows, setRows] = useState(() => loadMonthRows(ano, mes) ?? generateMonthRows(ano, mes, activeDatesOf(displayHolidays)))
 
   const reportRef = useRef(null)
 
@@ -40,23 +53,24 @@ export default function App() {
     // que a geração do mês abaixo já saiba quais dias são não-trabalhados.
     const resolvedHolidays = loadHolidays(ano) ?? getDefaultHolidays(ano)
     setHolidays(resolvedHolidays)
+    const resolvedDisplay = [...resolvedHolidays, ...projectRecurringHolidays(recurringHolidays, ano)]
 
     const saved = loadMonthRows(ano, mes)
     if (saved) {
       setRows(saved)
     } else {
-      const activeDates = new Set(resolvedHolidays.filter((h) => h.enabled).map((h) => h.date))
-      const generated = generateMonthRows(ano, mes, activeDates)
+      const generated = generateMonthRows(ano, mes, activeDatesOf(resolvedDisplay))
       setRows(generated)
       saveMonthRows(ano, mes, generated)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ano, mes])
 
   const jornadaPadraoMinutes = useMemo(() => parseTimeToMinutes(jornadaPadrao) ?? 240, [jornadaPadrao])
 
   const holidayNames = useMemo(
-    () => new Map(holidays.filter((h) => h.enabled).map((h) => [h.date, h.name])),
-    [holidays],
+    () => new Map(displayHolidays.filter((h) => h.enabled).map((h) => [h.date, h.name])),
+    [displayHolidays],
   )
 
   const computedRows = useMemo(
@@ -83,8 +97,7 @@ export default function App() {
       )
       if (!confirmed) return
     }
-    const activeDates = new Set(holidays.filter((h) => h.enabled).map((h) => h.date))
-    const generated = generateMonthRows(ano, mes, activeDates)
+    const generated = generateMonthRows(ano, mes, activeDatesOf(displayHolidays))
     setRows(generated)
     saveMonthRows(ano, mes, generated)
   }
@@ -94,22 +107,49 @@ export default function App() {
     saveHolidays(ano, next)
   }
 
-  function toggleHoliday(date) {
-    updateHolidays(holidays.map((h) => (h.date === date ? { ...h, enabled: !h.enabled } : h)))
+  function updateRecurringHolidays(next) {
+    setRecurringHolidays(next)
+    saveRecurringHolidays(next)
   }
 
-  function removeHoliday(date) {
-    updateHolidays(holidays.filter((h) => h.date !== date))
+  function toggleHoliday(holiday) {
+    if (holiday.recurring) {
+      updateRecurringHolidays(recurringHolidays.map((r) => (r.id === holiday.id ? { ...r, enabled: !r.enabled } : r)))
+    } else {
+      updateHolidays(holidays.map((h) => (h.date === holiday.date ? { ...h, enabled: !h.enabled } : h)))
+    }
   }
 
-  function addHoliday({ date, name }) {
+  function removeHoliday(holiday) {
+    if (holiday.recurring) {
+      updateRecurringHolidays(recurringHolidays.filter((r) => r.id !== holiday.id))
+    } else {
+      updateHolidays(holidays.filter((h) => h.date !== holiday.date))
+    }
+  }
+
+  function addHoliday({ date, name, recurring }) {
+    if (recurring) {
+      const [, month, day] = date.split('-').map(Number)
+      const id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${month}-${day}-${Date.now()}`
+      const exists = recurringHolidays.some((r) => r.month === month && r.day === day)
+      if (exists) {
+        updateRecurringHolidays(
+          recurringHolidays.map((r) => (r.month === month && r.day === day ? { ...r, name, enabled: true } : r)),
+        )
+        return
+      }
+      updateRecurringHolidays([...recurringHolidays, { id, month, day, name, enabled: true }])
+      return
+    }
+
     const exists = holidays.some((h) => h.date === date)
     if (exists) {
       updateHolidays(holidays.map((h) => (h.date === date ? { ...h, name, enabled: true } : h)))
       return
     }
-    const next = [...holidays, { date, name, scope: 'personalizado', enabled: true, custom: true }].sort((a, b) =>
-      a.date > b.date ? 1 : -1,
+    const next = [...holidays, { date, name, scope: 'personalizado (só este ano)', enabled: true, custom: true }].sort(
+      (a, b) => (a.date > b.date ? 1 : -1),
     )
     updateHolidays(next)
   }
@@ -161,7 +201,13 @@ export default function App() {
 
       <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
         {showHolidays && (
-          <HolidaysPanel ano={ano} holidays={holidays} onToggle={toggleHoliday} onRemove={removeHoliday} onAdd={addHoliday} />
+          <HolidaysPanel
+            ano={ano}
+            holidays={displayHolidays}
+            onToggle={toggleHoliday}
+            onRemove={removeHoliday}
+            onAdd={addHoliday}
+          />
         )}
 
         <PontoTable

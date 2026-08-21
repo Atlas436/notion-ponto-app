@@ -3,6 +3,7 @@ import { DEFAULT_JORNADA } from './time'
 const SETTINGS_KEY = 'cozyPonto.settings'
 const monthKey = (year, month) => `cozyPonto.month.${year}-${String(month).padStart(2, '0')}`
 const holidaysKey = (year) => `cozyPonto.holidays.${year}`
+const RECURRING_HOLIDAYS_KEY = 'cozyPonto.recurringHolidays'
 
 export function loadSettings() {
   try {
@@ -59,6 +60,27 @@ export function loadHolidays(year) {
 export function saveHolidays(year, holidays) {
   try {
     localStorage.setItem(holidaysKey(year), JSON.stringify(holidays))
+  } catch {
+    // localStorage indisponível — ignora silenciosamente
+  }
+}
+
+// Feriados/datas pessoais adicionados pelo usuário que se repetem todo ano (ex.: aniversário).
+// Ficam guardados por dia/mês, independentes do ano — não em cozyPonto.holidays.{year}.
+export function loadRecurringHolidays() {
+  try {
+    const raw = localStorage.getItem(RECURRING_HOLIDAYS_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+export function saveRecurringHolidays(holidays) {
+  try {
+    localStorage.setItem(RECURRING_HOLIDAYS_KEY, JSON.stringify(holidays))
   } catch {
     // localStorage indisponível — ignora silenciosamente
   }

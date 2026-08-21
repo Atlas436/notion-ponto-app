@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { computeEaster, getDefaultHolidays, getMovableNationalHolidays } from './holidays'
+import { computeEaster, getDefaultHolidays, getMovableNationalHolidays, projectRecurringHolidays } from './holidays'
 
 describe('computeEaster', () => {
   it('calcula corretamente domingos de Páscoa conhecidos', () => {
@@ -50,5 +50,25 @@ describe('getDefaultHolidays', () => {
     const dates = holidays.map((h) => h.date)
     const sorted = [...dates].sort()
     expect(dates).toEqual(sorted)
+  })
+})
+
+describe('projectRecurringHolidays', () => {
+  it('projeta dia/mês de uma data pessoal recorrente (ex.: aniversário) sobre qualquer ano', () => {
+    const recurring = [{ id: 'abc', month: 6, day: 15, name: 'Aniversário da Julia', enabled: true }]
+
+    expect(projectRecurringHolidays(recurring, 2026)).toEqual([
+      {
+        date: '2026-06-15',
+        name: 'Aniversário da Julia',
+        scope: 'pessoal (todo ano)',
+        enabled: true,
+        custom: true,
+        recurring: true,
+        id: 'abc',
+      },
+    ])
+
+    expect(projectRecurringHolidays(recurring, 2030)[0].date).toBe('2030-06-15')
   })
 })
