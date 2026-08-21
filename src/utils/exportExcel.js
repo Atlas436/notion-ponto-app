@@ -6,7 +6,7 @@ export function exportToExcel({ colaborador, monthName, year, computedRows, tota
 
   const body = computedRows.map((row) => [
     formatDateBR(row.date),
-    row.weekdayLabel,
+    row.holidayName ? `${row.weekdayLabel} (${row.holidayName})` : row.weekdayLabel,
     row.entrada || '',
     row.saida || '',
     minutesToTime(row.totalMinutes),

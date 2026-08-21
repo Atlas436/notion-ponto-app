@@ -1,5 +1,8 @@
-import { Calendar, Clock, Download, Printer, RefreshCw, User } from 'lucide-react'
+import { Calendar, CalendarHeart, Clock, Download, Printer, RefreshCw, Sparkles, User } from 'lucide-react'
+import { getDailyMessage } from '../utils/dailyMessage'
 import { MONTH_NAMES } from '../utils/time'
+
+const dailyMessage = getDailyMessage()
 
 export default function Header({
   colaborador,
@@ -10,6 +13,8 @@ export default function Header({
   onAnoChange,
   jornadaPadrao,
   onJornadaPadraoChange,
+  showHolidays,
+  onToggleHolidays,
   onGenerateReset,
   onExportExcel,
   onExportPdf,
@@ -24,6 +29,10 @@ export default function Header({
         <p className="mt-1 text-sm text-cozy-muted">
           Controle de ponto minimalista para registro de jornada, tarefas diárias e cálculo de horas extras.
         </p>
+        <p className="mt-2 flex items-center gap-1.5 text-xs italic text-cozy-accent/80">
+          <Sparkles size={12} className="shrink-0" aria-hidden="true" />
+          {dailyMessage}
+        </p>
 
         <div className="mt-4 flex flex-wrap items-end gap-3">
           <label className="flex flex-col gap-1">
@@ -34,7 +43,7 @@ export default function Header({
               type="text"
               value={colaborador}
               onChange={(e) => onColaboradorChange(e.target.value)}
-              className="w-44 rounded-lg border border-cozy-border bg-cozy-panel px-3 py-1.5 text-sm text-cozy-text shadow-sm outline-none focus:border-cozy-accent focus:ring-2 focus:ring-cozy-accent/20"
+              className="w-44 rounded-xl border border-cozy-border bg-cozy-panel px-3 py-1.5 text-sm text-cozy-text shadow-sm outline-none focus:border-cozy-accent focus:ring-2 focus:ring-cozy-accent/20"
               placeholder="Nome do colaborador"
             />
           </label>
@@ -46,7 +55,7 @@ export default function Header({
             <select
               value={mes}
               onChange={(e) => onMesChange(Number(e.target.value))}
-              className="rounded-lg border border-cozy-border bg-cozy-panel px-3 py-1.5 text-sm text-cozy-text shadow-sm outline-none focus:border-cozy-accent focus:ring-2 focus:ring-cozy-accent/20"
+              className="rounded-xl border border-cozy-border bg-cozy-panel px-3 py-1.5 text-sm text-cozy-text shadow-sm outline-none focus:border-cozy-accent focus:ring-2 focus:ring-cozy-accent/20"
             >
               {MONTH_NAMES.map((name, idx) => (
                 <option key={name} value={idx + 1}>
@@ -62,7 +71,7 @@ export default function Header({
               type="number"
               value={ano}
               onChange={(e) => onAnoChange(Number(e.target.value))}
-              className="w-24 rounded-lg border border-cozy-border bg-cozy-panel px-3 py-1.5 text-sm text-cozy-text shadow-sm outline-none focus:border-cozy-accent focus:ring-2 focus:ring-cozy-accent/20"
+              className="w-24 rounded-xl border border-cozy-border bg-cozy-panel px-3 py-1.5 text-sm text-cozy-text shadow-sm outline-none focus:border-cozy-accent focus:ring-2 focus:ring-cozy-accent/20"
             />
           </label>
 
@@ -74,30 +83,43 @@ export default function Header({
               type="time"
               value={jornadaPadrao}
               onChange={(e) => onJornadaPadraoChange(e.target.value)}
-              className="w-36 rounded-lg border border-cozy-border bg-cozy-panel px-3 py-1.5 text-sm text-cozy-text shadow-sm outline-none focus:border-cozy-accent focus:ring-2 focus:ring-cozy-accent/20"
+              className="w-36 rounded-xl border border-cozy-border bg-cozy-panel px-3 py-1.5 text-sm text-cozy-text shadow-sm outline-none focus:border-cozy-accent focus:ring-2 focus:ring-cozy-accent/20"
             />
           </label>
 
           <button
             type="button"
             onClick={onGenerateReset}
-            className="flex items-center gap-1.5 rounded-lg border border-cozy-border bg-cozy-panel px-3 py-1.5 text-sm font-medium text-cozy-text shadow-sm transition-colors hover:bg-cozy-weekend"
+            className="flex items-center gap-1.5 rounded-xl border border-cozy-border bg-cozy-panel px-3 py-1.5 text-sm font-medium text-cozy-text shadow-sm transition-colors hover:bg-cozy-weekend"
           >
             <RefreshCw size={14} /> Gerar / Resetar Mês
+          </button>
+
+          <button
+            type="button"
+            onClick={onToggleHolidays}
+            aria-pressed={showHolidays}
+            className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-sm font-medium shadow-sm transition-colors ${
+              showHolidays
+                ? 'border-cozy-holiday bg-cozy-holidayBg text-cozy-holiday'
+                : 'border-cozy-border bg-cozy-panel text-cozy-text hover:bg-cozy-weekend'
+            }`}
+          >
+            <CalendarHeart size={14} /> Feriados
           </button>
 
           <div className="ml-auto flex flex-wrap gap-2">
             <button
               type="button"
               onClick={onExportExcel}
-              className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-emerald-700"
+              className="flex items-center gap-1.5 rounded-xl bg-cozy-sage px-3 py-1.5 text-sm font-medium text-white shadow-sm transition-colors hover:brightness-110"
             >
               <Download size={14} /> Exportar Excel (.xlsx)
             </button>
             <button
               type="button"
               onClick={onExportPdf}
-              className="flex items-center gap-1.5 rounded-lg bg-cozy-accent px-3 py-1.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-600"
+              className="flex items-center gap-1.5 rounded-xl bg-cozy-accent px-3 py-1.5 text-sm font-medium text-white shadow-sm transition-colors hover:brightness-110"
             >
               <Printer size={14} /> Exportar PDF / Imprimir
             </button>

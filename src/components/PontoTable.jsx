@@ -1,12 +1,18 @@
 import { forwardRef } from 'react'
 import { formatDateBR, minutesToTime } from '../utils/time'
 
+function rowBg(row) {
+  if (row.holidayName) return 'bg-cozy-holidayBg'
+  if (row.weekend) return 'bg-cozy-weekend'
+  return 'bg-cozy-panel'
+}
+
 const PontoTable = forwardRef(function PontoTable(
   { colaborador, monthName, ano, jornadaPadrao, computedRows, totalMinutes, totalExtraMinutes, onUpdateRow },
   ref,
 ) {
   return (
-    <div ref={ref} className="rounded-xl border border-cozy-border bg-cozy-panel shadow-sm">
+    <div ref={ref} className="rounded-2xl border border-cozy-border bg-cozy-panel shadow-sm">
       <div className="border-b border-cozy-border px-5 py-4">
         <h2 className="text-lg font-semibold text-cozy-text">Relatório de Ponto — {colaborador || 'Colaborador(a)'}</h2>
         <p className="text-sm text-cozy-muted">
@@ -29,14 +35,21 @@ const PontoTable = forwardRef(function PontoTable(
           </thead>
           <tbody>
             {computedRows.map((row) => (
-              <tr
-                key={row.date}
-                className={`border-b border-cozy-border last:border-b-0 ${
-                  row.weekend ? 'bg-cozy-weekend' : 'bg-cozy-panel'
-                }`}
-              >
+              <tr key={row.date} className={`border-b border-cozy-border last:border-b-0 ${rowBg(row)}`}>
                 <td className="whitespace-nowrap px-3 py-1 font-medium text-cozy-text">{formatDateBR(row.date)}</td>
-                <td className="whitespace-nowrap px-3 py-1 text-cozy-muted">{row.weekdayLabel}</td>
+                <td className="whitespace-nowrap px-3 py-1 text-cozy-muted">
+                  <div className="flex items-center gap-1.5">
+                    {row.weekdayLabel}
+                    {row.holidayName && (
+                      <span
+                        title={row.holidayName}
+                        className="rounded-full bg-cozy-holiday/15 px-2 py-0.5 text-[10px] font-medium text-cozy-holiday"
+                      >
+                        {row.holidayName}
+                      </span>
+                    )}
+                  </div>
+                </td>
                 <td className="px-1 py-1">
                   <input
                     type="time"
@@ -60,8 +73,8 @@ const PontoTable = forwardRef(function PontoTable(
                   <span className={row.extraMinutes > 0 ? 'font-semibold text-cozy-extra' : 'text-cozy-muted'}>
                     {minutesToTime(row.extraMinutes)}
                   </span>
-                  {row.weekend && row.totalMinutes > 0 && (
-                    <span className="ml-2 rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-medium text-cozy-extra no-print">
+                  {row.weekend && !row.holidayName && row.totalMinutes > 0 && (
+                    <span className="ml-2 rounded-full bg-cozy-extra/15 px-2 py-0.5 text-[10px] font-medium text-cozy-extra no-print">
                       fim de semana
                     </span>
                   )}

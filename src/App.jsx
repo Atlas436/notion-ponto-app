@@ -1,7 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Header from './components/Header'
+import HolidaysPanel from './components/HolidaysPanel'
 import PontoTable from './components/PontoTable'
-import { loadSettings, saveSettings, loadMonthRows, saveMonthRows } from './utils/storage'
+import {
+  loadSettings,
+  saveSettings,
+  loadMonthRows,
+  saveMonthRows,
+  loadHolidays,
+  saveHolidays,
+} from './utils/storage'
+import { getDefaultHolidays } from './utils/holidays'
 import { computeRow, generateMonthRows, MONTH_NAMES, parseTimeToMinutes } from './utils/time'
 import { exportToExcel } from './utils/exportExcel'
 
@@ -13,7 +22,12 @@ export default function App() {
   const [jornadaPadrao, setJornadaPadrao] = useState(initialSettings.jornadaPadrao)
   const [mes, setMes] = useState(today.getMonth() + 1)
   const [ano, setAno] = useState(today.getFullYear())
-  const [rows, setRows] = useState(() => loadMonthRows(ano, mes) ?? generateMonthRows(ano, mes))
+  const [holidays, setHolidays] = useState(() => loadHolidays(today.getFullYear()) ?? getDefaultHolidays(today.getFullYear()))
+  const [showHolidays, setShowHolidays] = useState(false)
+  const [rows, setRows] = useState(() => {
+    const activeDates = new Set(holidays.filter((h) => h.enabled).map((h) => h.date))
+    return loadMonthRows(ano, mes) ?? generateMonthRows(ano, mes, activeDates)
+  })
 
   const reportRef = useRef(null)
 
@@ -22,11 +36,17 @@ export default function App() {
   }, [colaborador, jornadaPadrao])
 
   useEffect(() => {
+    // Resolve os feriados do ano primeiro (síncrono, sem depender do state antigo) para
+    // que a geração do mês abaixo já saiba quais dias são não-trabalhados.
+    const resolvedHolidays = loadHolidays(ano) ?? getDefaultHolidays(ano)
+    setHolidays(resolvedHolidays)
+
     const saved = loadMonthRows(ano, mes)
     if (saved) {
       setRows(saved)
     } else {
-      const generated = generateMonthRows(ano, mes)
+      const activeDates = new Set(resolvedHolidays.filter((h) => h.enabled).map((h) => h.date))
+      const generated = generateMonthRows(ano, mes, activeDates)
       setRows(generated)
       saveMonthRows(ano, mes, generated)
     }
@@ -34,9 +54,14 @@ export default function App() {
 
   const jornadaPadraoMinutes = useMemo(() => parseTimeToMinutes(jornadaPadrao) ?? 240, [jornadaPadrao])
 
+  const holidayNames = useMemo(
+    () => new Map(holidays.filter((h) => h.enabled).map((h) => [h.date, h.name])),
+    [holidays],
+  )
+
   const computedRows = useMemo(
-    () => rows.map((row) => computeRow(row, jornadaPadraoMinutes)),
-    [rows, jornadaPadraoMinutes],
+    () => rows.map((row) => computeRow(row, jornadaPadraoMinutes, holidayNames)),
+    [rows, jornadaPadraoMinutes, holidayNames],
   )
 
   const totalMinutes = useMemo(() => computedRows.reduce((acc, row) => acc + row.totalMinutes, 0), [computedRows])
@@ -58,9 +83,35 @@ export default function App() {
       )
       if (!confirmed) return
     }
-    const generated = generateMonthRows(ano, mes)
+    const activeDates = new Set(holidays.filter((h) => h.enabled).map((h) => h.date))
+    const generated = generateMonthRows(ano, mes, activeDates)
     setRows(generated)
     saveMonthRows(ano, mes, generated)
+  }
+
+  function updateHolidays(next) {
+    setHolidays(next)
+    saveHolidays(ano, next)
+  }
+
+  function toggleHoliday(date) {
+    updateHolidays(holidays.map((h) => (h.date === date ? { ...h, enabled: !h.enabled } : h)))
+  }
+
+  function removeHoliday(date) {
+    updateHolidays(holidays.filter((h) => h.date !== date))
+  }
+
+  function addHoliday({ date, name }) {
+    const exists = holidays.some((h) => h.date === date)
+    if (exists) {
+      updateHolidays(holidays.map((h) => (h.date === date ? { ...h, name, enabled: true } : h)))
+      return
+    }
+    const next = [...holidays, { date, name, scope: 'personalizado', enabled: true, custom: true }].sort((a, b) =>
+      a.date > b.date ? 1 : -1,
+    )
+    updateHolidays(next)
   }
 
   function handleExportExcel() {
@@ -101,12 +152,18 @@ export default function App() {
         onAnoChange={setAno}
         jornadaPadrao={jornadaPadrao}
         onJornadaPadraoChange={setJornadaPadrao}
+        showHolidays={showHolidays}
+        onToggleHolidays={() => setShowHolidays((v) => !v)}
         onGenerateReset={handleGenerateReset}
         onExportExcel={handleExportExcel}
         onExportPdf={handleExportPdf}
       />
 
       <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+        {showHolidays && (
+          <HolidaysPanel ano={ano} holidays={holidays} onToggle={toggleHoliday} onRemove={removeHoliday} onAdd={addHoliday} />
+        )}
+
         <PontoTable
           ref={reportRef}
           colaborador={colaborador}

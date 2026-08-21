@@ -108,6 +108,14 @@ describe('generateMonthRows', () => {
     }
   })
 
+  it('deixa em branco também as datas passadas em holidayDates, mesmo em dia útil', () => {
+    // 2026-04-21 (terça-feira) é Tiradentes
+    const rows = generateMonthRows(2026, 4, new Set(['2026-04-21']))
+    const tiradentes = rows.find((r) => r.date === '2026-04-21')
+    expect(tiradentes.entrada).toBe('')
+    expect(tiradentes.saida).toBe('')
+  })
+
   it('respeita fevereiro bissexto (2028 tem 29 dias)', () => {
     expect(generateMonthRows(2028, 2)).toHaveLength(29)
   })
@@ -147,5 +155,22 @@ describe('computeRow', () => {
     const row = computeRow({ date: '2026-03-07', entrada: '', saida: '' }, jornadaPadraoMinutes)
     expect(row.totalMinutes).toBe(0)
     expect(row.extraMinutes).toBe(0)
+  })
+
+  it('trata um feriado em dia útil como não-trabalhado (mesma regra do fim de semana)', () => {
+    // 2026-04-21 (terça-feira) é Tiradentes
+    const holidayNames = new Map([['2026-04-21', 'Tiradentes']])
+    const row = computeRow({ date: '2026-04-21', entrada: '17:30', saida: '20:00' }, jornadaPadraoMinutes, holidayNames)
+    expect(row.weekend).toBe(false)
+    expect(row.holidayName).toBe('Tiradentes')
+    expect(row.nonWorkingDay).toBe(true)
+    expect(row.totalMinutes).toBe(150)
+    expect(row.extraMinutes).toBe(150)
+  })
+
+  it('não marca holidayName quando a data não está no mapa de feriados', () => {
+    const row = computeRow({ date: '2026-03-02', entrada: '17:30', saida: '21:30' }, jornadaPadraoMinutes)
+    expect(row.holidayName).toBeNull()
+    expect(row.nonWorkingDay).toBe(false)
   })
 })

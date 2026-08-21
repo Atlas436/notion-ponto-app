@@ -4,7 +4,7 @@
 
 @layer base {
   html {
-    background-color: #fbfbfa;
+    background-color: #faf7fc;
   }
 
   body {
@@ -19,7 +19,7 @@
 
 @layer utilities {
   .cell-input {
-    @apply w-full rounded-md border border-transparent bg-transparent px-2 py-1.5 text-sm text-cozy-text outline-none transition-colors;
+    @apply w-full rounded-lg border border-transparent bg-transparent px-2 py-1.5 text-sm text-cozy-text outline-none transition-colors;
     @apply hover:border-cozy-border focus:border-cozy-accent focus:bg-white focus:ring-2 focus:ring-cozy-accent/20;
   }
 }

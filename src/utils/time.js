@@ -59,31 +59,36 @@ export function diffMinutes(entrada, saida) {
   return diff
 }
 
-export function generateMonthRows(year, month) {
+export function generateMonthRows(year, month, holidayDates = new Set()) {
   const daysInMonth = new Date(year, month, 0).getDate()
   const rows = []
   for (let day = 1; day <= daysInMonth; day += 1) {
+    const date = dateKey(year, month, day)
     const dow = new Date(year, month - 1, day).getDay()
-    const weekend = isWeekend(dow)
+    const nonWorkingDay = isWeekend(dow) || holidayDates.has(date)
     rows.push({
-      date: dateKey(year, month, day),
-      entrada: weekend ? '' : DEFAULT_ENTRADA,
-      saida: weekend ? '' : DEFAULT_SAIDA,
+      date,
+      entrada: nonWorkingDay ? '' : DEFAULT_ENTRADA,
+      saida: nonWorkingDay ? '' : DEFAULT_SAIDA,
       descricao: '',
     })
   }
   return rows
 }
 
-export function computeRow(row, jornadaPadraoMinutes) {
+export function computeRow(row, jornadaPadraoMinutes, holidayNames = new Map()) {
   const dow = getWeekdayIndex(row.date)
   const weekend = isWeekend(dow)
+  const holidayName = holidayNames.get(row.date) ?? null
+  const nonWorkingDay = weekend || Boolean(holidayName)
   const totalMinutes = diffMinutes(row.entrada, row.saida)
-  const extraMinutes = weekend ? totalMinutes : Math.max(0, totalMinutes - jornadaPadraoMinutes)
+  const extraMinutes = nonWorkingDay ? totalMinutes : Math.max(0, totalMinutes - jornadaPadraoMinutes)
 
   return {
     ...row,
     weekend,
+    holidayName,
+    nonWorkingDay,
     weekdayLabel: WEEKDAY_SHORT[dow],
     totalMinutes,
     extraMinutes,
