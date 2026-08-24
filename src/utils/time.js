@@ -21,6 +21,10 @@ export function dateKey(year, month, day) {
   return `${year}-${pad(month)}-${pad(day)}`
 }
 
+export function todayDateKey(now = new Date()) {
+  return dateKey(now.getFullYear(), now.getMonth() + 1, now.getDate())
+}
+
 export function formatDateBR(dateStr) {
   const [y, m, d] = dateStr.split('-')
   return `${d}/${m}/${y}`
@@ -76,7 +80,7 @@ export function generateMonthRows(year, month, holidayDates = new Set()) {
   return rows
 }
 
-export function computeRow(row, jornadaPadraoMinutes, holidayNames = new Map()) {
+export function computeRow(row, jornadaPadraoMinutes, holidayNames = new Map(), todayKey = null) {
   const dow = getWeekdayIndex(row.date)
   const weekend = isWeekend(dow)
   const holidayName = holidayNames.get(row.date) ?? null
@@ -89,6 +93,7 @@ export function computeRow(row, jornadaPadraoMinutes, holidayNames = new Map()) 
     weekend,
     holidayName,
     nonWorkingDay,
+    isToday: todayKey != null && row.date === todayKey,
     weekdayLabel: WEEKDAY_SHORT[dow],
     totalMinutes,
     extraMinutes,

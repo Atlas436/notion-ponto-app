@@ -16,7 +16,7 @@ import {
   saveGoogleSheetsSettings,
 } from './utils/storage'
 import { getDefaultHolidays, projectRecurringHolidays } from './utils/holidays'
-import { computeRow, generateMonthRows, MONTH_NAMES, parseTimeToMinutes } from './utils/time'
+import { computeRow, generateMonthRows, MONTH_NAMES, parseTimeToMinutes, todayDateKey } from './utils/time'
 import { exportToExcel } from './utils/exportExcel'
 import { extractSpreadsheetId, requestAccessToken, syncToGoogleSheet } from './utils/googleSheets'
 
@@ -91,9 +91,11 @@ export default function App() {
     [displayHolidays],
   )
 
+  const todayKey = useMemo(() => todayDateKey(), [])
+
   const computedRows = useMemo(
-    () => rows.map((row) => computeRow(row, jornadaPadraoMinutes, holidayNames)),
-    [rows, jornadaPadraoMinutes, holidayNames],
+    () => rows.map((row) => computeRow(row, jornadaPadraoMinutes, holidayNames, todayKey)),
+    [rows, jornadaPadraoMinutes, holidayNames, todayKey],
   )
 
   const totalMinutes = useMemo(() => computedRows.reduce((acc, row) => acc + row.totalMinutes, 0), [computedRows])

@@ -8,6 +8,7 @@ import {
   isWeekend,
   minutesToTime,
   parseTimeToMinutes,
+  todayDateKey,
 } from './time'
 
 describe('parseTimeToMinutes', () => {
@@ -172,5 +173,25 @@ describe('computeRow', () => {
     const row = computeRow({ date: '2026-03-02', entrada: '17:30', saida: '21:30' }, jornadaPadraoMinutes)
     expect(row.holidayName).toBeNull()
     expect(row.nonWorkingDay).toBe(false)
+  })
+
+  it('marca isToday quando a data da linha bate com a data de hoje informada', () => {
+    const holidayNames = new Map()
+    const today = computeRow({ date: '2026-08-24', entrada: '', saida: '' }, jornadaPadraoMinutes, holidayNames, '2026-08-24')
+    expect(today.isToday).toBe(true)
+
+    const otherDay = computeRow({ date: '2026-08-25', entrada: '', saida: '' }, jornadaPadraoMinutes, holidayNames, '2026-08-24')
+    expect(otherDay.isToday).toBe(false)
+  })
+
+  it('isToday fica false quando nenhuma data de hoje é passada (mês diferente do atual)', () => {
+    const row = computeRow({ date: '2026-08-24', entrada: '', saida: '' }, jornadaPadraoMinutes)
+    expect(row.isToday).toBe(false)
+  })
+})
+
+describe('todayDateKey', () => {
+  it('formata a data atual como YYYY-MM-DD', () => {
+    expect(todayDateKey(new Date(2026, 7, 24))).toBe('2026-08-24')
   })
 })

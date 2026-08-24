@@ -36,7 +36,20 @@ const PontoTable = forwardRef(function PontoTable(
           <tbody>
             {computedRows.map((row) => (
               <tr key={row.date} className={`border-b border-cozy-border last:border-b-0 ${rowBg(row)}`}>
-                <td className="whitespace-nowrap px-3 py-1 font-medium text-cozy-text">{formatDateBR(row.date)}</td>
+                <td
+                  className={`whitespace-nowrap px-3 py-1 font-medium ${
+                    row.isToday
+                      ? 'border-l-4 border-l-cozy-accent font-bold text-cozy-accent'
+                      : 'text-cozy-text'
+                  }`}
+                >
+                  {formatDateBR(row.date)}
+                  {row.isToday && (
+                    <span className="ml-2 rounded-full bg-cozy-accent/15 px-2 py-0.5 text-[10px] font-medium no-print">
+                      hoje
+                    </span>
+                  )}
+                </td>
                 <td className="whitespace-nowrap px-3 py-1 text-cozy-muted">
                   <div className="flex items-center gap-1.5">
                     {row.weekdayLabel}
