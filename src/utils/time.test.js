@@ -188,6 +188,13 @@ describe('computeRow', () => {
     const row = computeRow({ date: '2026-08-24', entrada: '', saida: '' }, jornadaPadraoMinutes)
     expect(row.isToday).toBe(false)
   })
+
+  it('isToday fica false em fim de semana, mesmo batendo com a data de hoje', () => {
+    // 2026-08-22 é um sábado
+    const row = computeRow({ date: '2026-08-22', entrada: '', saida: '' }, jornadaPadraoMinutes, new Map(), '2026-08-22')
+    expect(row.weekend).toBe(true)
+    expect(row.isToday).toBe(false)
+  })
 })
 
 describe('todayDateKey', () => {
