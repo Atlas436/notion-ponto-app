@@ -20,6 +20,10 @@ export default function TasksModal({ date, tarefas, tags, jornadaPadrao, onChang
     onChangeTasks([...tarefas, createEmptyTask()])
   }
 
+  function addTaskWithTag(tagId) {
+    onChangeTasks([...tarefas, { ...createEmptyTask(), tagId }])
+  }
+
   function handleAddTag(e) {
     e.preventDefault()
     if (!newTagName.trim()) return
@@ -125,13 +129,32 @@ export default function TasksModal({ date, tarefas, tags, jornadaPadrao, onChang
           {tarefas.length === 0 && <p className="py-4 text-center text-sm text-cozy-muted">Nenhuma tarefa ainda.</p>}
         </div>
 
-        <button
-          type="button"
-          onClick={addTask}
-          className="mt-3 flex items-center gap-1.5 rounded-xl border border-cozy-border bg-cozy-panel px-3 py-1.5 text-sm font-medium text-cozy-text shadow-sm transition-colors hover:bg-cozy-weekend"
-        >
-          <Plus size={14} /> Adicionar tarefa
-        </button>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={addTask}
+            className="flex items-center gap-1.5 rounded-xl border border-cozy-border bg-cozy-panel px-3 py-1.5 text-sm font-medium text-cozy-text shadow-sm transition-colors hover:bg-cozy-weekend"
+          >
+            <Plus size={14} /> Adicionar tarefa
+          </button>
+
+          {tags.length > 0 && (
+            <>
+              <span className="text-xs text-cozy-muted">ou adicionar direto com uma tag:</span>
+              {tags.map((tag) => (
+                <button
+                  key={tag.id}
+                  type="button"
+                  onClick={() => addTaskWithTag(tag.id)}
+                  className="rounded-full px-2.5 py-1 text-[11px] font-medium transition-transform hover:scale-105"
+                  style={{ backgroundColor: `${tag.color}22`, color: tag.color }}
+                >
+                  + {tag.name}
+                </button>
+              ))}
+            </>
+          )}
+        </div>
 
         <div className="mt-4 flex items-center justify-between border-t border-cozy-border pt-3 text-sm">
           <span className="text-cozy-muted">Total registrado nas tarefas</span>
