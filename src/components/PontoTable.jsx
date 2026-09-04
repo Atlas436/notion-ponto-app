@@ -1,6 +1,7 @@
 import { forwardRef, useState } from 'react'
 import { ListChecks } from 'lucide-react'
 import { formatDateBR, minutesToTime } from '../utils/time'
+import { findTag } from '../utils/tasks'
 import TasksModal from './TasksModal'
 
 function rowBg(row) {
@@ -9,7 +10,7 @@ function rowBg(row) {
   return 'bg-cozy-panel'
 }
 
-function taskLine(t) {
+function taskTimeLabel(t) {
   const time = t.inicio && t.fim ? `${t.inicio}–${t.fim}` : t.inicio || t.fim || ''
   return [time, t.tarefa].filter(Boolean).join(' ')
 }
@@ -46,7 +47,7 @@ const PontoTable = forwardRef(function PontoTable(
           <tbody>
             {computedRows.map((row) => {
               const tarefas = row.tarefas ?? []
-              const filledTasks = tarefas.filter((t) => t.inicio || t.fim || t.tarefa)
+              const filledTasks = tarefas.filter((t) => t.inicio || t.fim || t.tarefa || t.tagId)
               return (
                 <tr key={row.date} className={`border-b border-cozy-border last:border-b-0 ${rowBg(row)}`}>
                   <td
@@ -123,9 +124,22 @@ const PontoTable = forwardRef(function PontoTable(
                     </button>
                     {filledTasks.length > 0 && (
                       <ul className="mt-1 space-y-0.5 text-[11px] text-cozy-muted">
-                        {filledTasks.map((t) => (
-                          <li key={t.id}>{taskLine(t)}</li>
-                        ))}
+                        {filledTasks.map((t) => {
+                          const tag = t.tagId ? findTag(taskTags, t.tagId) : null
+                          return (
+                            <li key={t.id} className="flex items-center gap-1">
+                              <span>{taskTimeLabel(t)}</span>
+                              {tag && (
+                                <span
+                                  className="rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+                                  style={{ backgroundColor: `${tag.color}22`, color: tag.color }}
+                                >
+                                  {tag.name}
+                                </span>
+                              )}
+                            </li>
+                          )
+                        })}
                       </ul>
                     )}
                   </td>

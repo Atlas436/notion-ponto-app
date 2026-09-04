@@ -18,6 +18,7 @@ import {
   saveTaskTags,
 } from './utils/storage'
 import { getDefaultHolidays, projectRecurringHolidays } from './utils/holidays'
+import { createTag } from './utils/tasks'
 import { computeRow, generateMonthRows, MONTH_NAMES, parseTimeToMinutes, todayDateKey } from './utils/time'
 import { exportToExcel } from './utils/exportExcel'
 import { extractSpreadsheetId, requestAccessToken, syncToGoogleSheet } from './utils/googleSheets'
@@ -179,15 +180,14 @@ export default function App() {
     updateHolidays(next)
   }
 
-  function addTaskTag(tag) {
-    if (taskTags.includes(tag)) return
-    const next = [...taskTags, tag]
+  function addTaskTag(name, color) {
+    const next = [...taskTags, createTag(name, color)]
     setTaskTags(next)
     saveTaskTags(next)
   }
 
-  function removeTaskTag(tag) {
-    const next = taskTags.filter((t) => t !== tag)
+  function removeTaskTag(tagId) {
+    const next = taskTags.filter((t) => t.id !== tagId)
     setTaskTags(next)
     saveTaskTags(next)
   }
@@ -200,6 +200,7 @@ export default function App() {
       computedRows,
       totalMinutes,
       totalExtraMinutes,
+      taskTags,
     })
   }
 
@@ -237,6 +238,7 @@ export default function App() {
         computedRows,
         totalMinutes,
         totalExtraMinutes,
+        taskTags,
       })
       setSheetsStatus('success')
       setSheetsError('')

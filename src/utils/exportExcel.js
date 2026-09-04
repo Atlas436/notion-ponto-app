@@ -2,7 +2,7 @@ import * as XLSX from 'xlsx'
 import { formatDateBR, minutesToTime } from './time'
 import { buildDescricaoCell } from './tasks'
 
-export function exportToExcel({ colaborador, monthName, year, computedRows, totalMinutes, totalExtraMinutes }) {
+export function exportToExcel({ colaborador, monthName, year, computedRows, totalMinutes, totalExtraMinutes, taskTags = [] }) {
   const header = ['Data', 'Dia da Semana', 'Entrada', 'Saída', 'Total Trabalhado', 'Horas Extras', 'Descrição / Atividades']
 
   const body = computedRows.map((row) => [
@@ -12,7 +12,7 @@ export function exportToExcel({ colaborador, monthName, year, computedRows, tota
     row.saida || '',
     minutesToTime(row.totalMinutes),
     minutesToTime(row.extraMinutes),
-    buildDescricaoCell(row),
+    buildDescricaoCell(row, taskTags),
   ])
 
   const footer = ['', '', '', 'Total do Mês', minutesToTime(totalMinutes), minutesToTime(totalExtraMinutes), '']

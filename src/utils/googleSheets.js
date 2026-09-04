@@ -86,7 +86,7 @@ async function ensureSheetTab(spreadsheetId, accessToken) {
   return created.replies[0].addSheet.properties.sheetId
 }
 
-export function buildSheetValues({ colaborador, monthName, ano, computedRows, totalMinutes, totalExtraMinutes }) {
+export function buildSheetValues({ colaborador, monthName, ano, computedRows, totalMinutes, totalExtraMinutes, taskTags = [] }) {
   const header = ['Data', 'Dia', 'Entrada', 'Saída', 'Total Trabalhado', 'Horas Extras', 'Descrição / Atividades']
   const body = computedRows.map((row) => [
     formatDateBR(row.date),
@@ -95,7 +95,7 @@ export function buildSheetValues({ colaborador, monthName, ano, computedRows, to
     row.saida || '',
     minutesToTime(row.totalMinutes),
     minutesToTime(row.extraMinutes),
-    buildDescricaoCell(row),
+    buildDescricaoCell(row, taskTags),
   ])
   const footer = ['', '', '', 'Total do Mês', minutesToTime(totalMinutes), minutesToTime(totalExtraMinutes), '']
 

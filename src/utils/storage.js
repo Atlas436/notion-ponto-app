@@ -113,14 +113,21 @@ export function saveGoogleSheetsSettings(settings) {
   }
 }
 
-// Tags de tarefas salvas pelo usuário (ex.: "Atendimento ao cliente", "Reunião"), pra
-// preencher rápido ao registrar uma tarefa em vez de redigitar. Lista global, não por mês/ano.
+// Tags de tarefas salvas pelo usuário (ex.: "Atendimento ao cliente", "Reunião"), cada uma
+// com um id e uma cor, pra selecionar rápido ao registrar uma tarefa em vez de redigitar.
+// Lista global, não por mês/ano.
 export function loadTaskTags() {
   try {
     const raw = localStorage.getItem(TASK_TAGS_KEY)
     if (!raw) return []
     const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed : []
+    if (!Array.isArray(parsed)) return []
+    // Migra o formato antigo (lista de strings, sem cor/id) pra objetos {id, name, color}.
+    return parsed.map((item) =>
+      typeof item === 'string'
+        ? { id: `tag-legacy-${item}`, name: item, color: '#7C5CBF' }
+        : item,
+    )
   } catch {
     return []
   }

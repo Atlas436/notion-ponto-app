@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Plus, Tag, Trash2, X } from 'lucide-react'
+import { Check, Plus, Tag, Trash2, X } from 'lucide-react'
 import { formatDateBR, minutesToTime } from '../utils/time'
-import { createEmptyTask, sumTaskMinutes, taskDuration } from '../utils/tasks'
+import { createEmptyTask, findTag, sumTaskMinutes, taskDuration, TAG_COLOR_PALETTE } from '../utils/tasks'
 
 export default function TasksModal({ date, tarefas, tags, jornadaPadrao, onChangeTasks, onAddTag, onRemoveTag, onClose }) {
-  const [newTag, setNewTag] = useState('')
+  const [newTagName, setNewTagName] = useState('')
+  const [newTagColor, setNewTagColor] = useState(TAG_COLOR_PALETTE[0])
   const [showTagManager, setShowTagManager] = useState(false)
 
   function updateTask(id, field, value) {
@@ -21,9 +22,10 @@ export default function TasksModal({ date, tarefas, tags, jornadaPadrao, onChang
 
   function handleAddTag(e) {
     e.preventDefault()
-    if (!newTag.trim()) return
-    onAddTag(newTag.trim())
-    setNewTag('')
+    if (!newTagName.trim()) return
+    onAddTag(newTagName.trim(), newTagColor)
+    setNewTagName('')
+    setNewTagColor(TAG_COLOR_PALETTE[0])
   }
 
   const totalMinutes = sumTaskMinutes(tarefas)
@@ -45,62 +47,81 @@ export default function TasksModal({ date, tarefas, tags, jornadaPadrao, onChang
         </div>
 
         <div className="mt-4 space-y-2">
-          {tarefas.map((t) => (
-            <div key={t.id} className="rounded-xl border border-cozy-border p-2.5">
-              <div className="flex flex-wrap items-center gap-2">
-                <input
-                  type="time"
-                  value={t.inicio}
-                  onChange={(e) => updateTask(t.id, 'inicio', e.target.value)}
-                  className="cell-input w-28 border-cozy-border"
-                />
-                <span className="text-cozy-muted">–</span>
-                <input
-                  type="time"
-                  value={t.fim}
-                  onChange={(e) => updateTask(t.id, 'fim', e.target.value)}
-                  className="cell-input w-28 border-cozy-border"
-                />
-                <span className="w-14 shrink-0 whitespace-nowrap font-mono text-xs text-cozy-muted">
-                  {minutesToTime(taskDuration(t))}
-                </span>
-                <input
-                  type="text"
-                  value={t.tarefa}
-                  onChange={(e) => updateTask(t.id, 'tarefa', e.target.value)}
-                  placeholder="O que você fez"
-                  className="cell-input min-w-[160px] flex-1 border-cozy-border"
-                />
-                <button
-                  type="button"
-                  onClick={() => removeTask(t.id)}
-                  className="text-cozy-muted transition-colors hover:text-red-600"
-                  aria-label="Remover tarefa"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
+          {tarefas.map((t) => {
+            const selectedTag = t.tagId ? findTag(tags, t.tagId) : null
+            return (
+              <div key={t.id} className="rounded-xl border border-cozy-border p-2.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    type="time"
+                    value={t.inicio}
+                    onChange={(e) => updateTask(t.id, 'inicio', e.target.value)}
+                    className="cell-input w-28 border-cozy-border"
+                  />
+                  <span className="text-cozy-muted">–</span>
+                  <input
+                    type="time"
+                    value={t.fim}
+                    onChange={(e) => updateTask(t.id, 'fim', e.target.value)}
+                    className="cell-input w-28 border-cozy-border"
+                  />
+                  <span className="w-14 shrink-0 whitespace-nowrap font-mono text-xs text-cozy-muted">
+                    {minutesToTime(taskDuration(t))}
+                  </span>
+                  <input
+                    type="text"
+                    value={t.tarefa}
+                    onChange={(e) => updateTask(t.id, 'tarefa', e.target.value)}
+                    placeholder="O que você fez"
+                    className="cell-input min-w-[160px] flex-1 border-cozy-border"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeTask(t.id)}
+                    className="text-cozy-muted transition-colors hover:text-red-600"
+                    aria-label="Remover tarefa"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
 
-              {tags.length > 0 && (
-                <div className="mt-1.5 pl-1">
+                <div className="mt-1.5 flex items-center gap-2 pl-1">
                   <select
                     value=""
                     onChange={(e) => {
-                      if (e.target.value) updateTask(t.id, 'tarefa', e.target.value)
+                      if (e.target.value) updateTask(t.id, 'tagId', e.target.value)
                     }}
-                    className="rounded-lg border border-cozy-border bg-cozy-panel px-2 py-1 text-[11px] text-cozy-muted outline-none focus:border-cozy-accent"
+                    disabled={tags.length === 0}
+                    className="rounded-lg border border-cozy-border bg-cozy-panel px-2 py-1 text-[11px] text-cozy-muted outline-none focus:border-cozy-accent disabled:opacity-50"
                   >
-                    <option value="">Selecionar tag…</option>
+                    <option value="">{tags.length === 0 ? 'Nenhuma tag salva' : 'Selecionar tag…'}</option>
                     {tags.map((tag) => (
-                      <option key={tag} value={tag}>
-                        {tag}
+                      <option key={tag.id} value={tag.id}>
+                        {tag.name}
                       </option>
                     ))}
                   </select>
+
+                  {selectedTag && (
+                    <span
+                      className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium"
+                      style={{ backgroundColor: `${selectedTag.color}22`, color: selectedTag.color }}
+                    >
+                      {selectedTag.name}
+                      <button
+                        type="button"
+                        onClick={() => updateTask(t.id, 'tagId', null)}
+                        aria-label={`Remover tag ${selectedTag.name} desta tarefa`}
+                        className="opacity-70 hover:opacity-100"
+                      >
+                        <X size={11} />
+                      </button>
+                    </span>
+                  )}
                 </div>
-              )}
-            </div>
-          ))}
+              </div>
+            )
+          })}
           {tarefas.length === 0 && <p className="py-4 text-center text-sm text-cozy-muted">Nenhuma tarefa ainda.</p>}
         </div>
 
@@ -125,41 +146,65 @@ export default function TasksModal({ date, tarefas, tags, jornadaPadrao, onChang
           onClick={() => setShowTagManager((v) => !v)}
           className="mt-3 flex items-center gap-1.5 text-xs font-medium text-cozy-accent underline decoration-dotted underline-offset-2"
         >
-          <Tag size={12} /> {showTagManager ? 'Esconder tags salvas' : 'Gerenciar tags salvas'}
+          <Tag size={12} /> {showTagManager ? 'Esconder gerenciador de tags' : 'Gerenciar tags'}
         </button>
 
         {showTagManager && (
           <div className="mt-2 rounded-xl border border-cozy-border p-3">
-            <ul className="flex flex-wrap gap-1.5">
+            <ul className="space-y-1.5">
               {tags.map((tag) => (
-                <li key={tag} className="flex items-center gap-1 rounded-full bg-cozy-weekend px-2 py-0.5 text-[11px] text-cozy-text">
-                  {tag}
+                <li key={tag.id} className="flex items-center justify-between">
+                  <span
+                    className="rounded-full px-2 py-0.5 text-[11px] font-medium"
+                    style={{ backgroundColor: `${tag.color}22`, color: tag.color }}
+                  >
+                    {tag.name}
+                  </span>
                   <button
                     type="button"
-                    onClick={() => onRemoveTag(tag)}
-                    className="text-cozy-muted transition-colors hover:text-red-600"
-                    aria-label={`Remover tag ${tag}`}
+                    onClick={() => onRemoveTag(tag.id)}
+                    className="flex items-center gap-1 text-xs text-cozy-muted transition-colors hover:text-red-600"
                   >
-                    <X size={11} />
+                    <Trash2 size={12} /> Excluir
                   </button>
                 </li>
               ))}
               {tags.length === 0 && <li className="text-xs text-cozy-muted">Nenhuma tag salva ainda.</li>}
             </ul>
-            <form onSubmit={handleAddTag} className="mt-2 flex gap-2">
-              <input
-                type="text"
-                value={newTag}
-                onChange={(e) => setNewTag(e.target.value)}
-                placeholder="Nova tag (ex.: Reunião)"
-                className="flex-1 rounded-lg border border-cozy-border bg-cozy-panel px-3 py-1.5 text-sm text-cozy-text shadow-sm outline-none focus:border-cozy-accent focus:ring-2 focus:ring-cozy-accent/20"
-              />
-              <button
-                type="submit"
-                className="flex items-center gap-1 rounded-lg border border-cozy-border bg-cozy-panel px-3 py-1.5 text-sm font-medium text-cozy-text shadow-sm transition-colors hover:bg-cozy-weekend"
-              >
-                <Plus size={14} /> Salvar
-              </button>
+
+            <form onSubmit={handleAddTag} className="mt-3 border-t border-cozy-border pt-3">
+              <label className="text-xs font-medium text-cozy-muted">Nome da nova tag</label>
+              <div className="mt-1 flex gap-2">
+                <input
+                  type="text"
+                  value={newTagName}
+                  onChange={(e) => setNewTagName(e.target.value)}
+                  placeholder="Ex.: Reunião"
+                  className="flex-1 rounded-lg border border-cozy-border bg-cozy-panel px-3 py-1.5 text-sm text-cozy-text shadow-sm outline-none focus:border-cozy-accent focus:ring-2 focus:ring-cozy-accent/20"
+                />
+                <button
+                  type="submit"
+                  className="flex items-center gap-1 rounded-lg border border-cozy-border bg-cozy-panel px-3 py-1.5 text-sm font-medium text-cozy-text shadow-sm transition-colors hover:bg-cozy-weekend"
+                >
+                  <Plus size={14} /> Salvar
+                </button>
+              </div>
+
+              <div className="mt-2 flex items-center gap-1.5">
+                <span className="text-xs text-cozy-muted">Cor:</span>
+                {TAG_COLOR_PALETTE.map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    onClick={() => setNewTagColor(color)}
+                    aria-label={`Escolher cor ${color}`}
+                    className="flex h-6 w-6 items-center justify-center rounded-full"
+                    style={{ backgroundColor: color }}
+                  >
+                    {newTagColor === color && <Check size={13} className="text-white" />}
+                  </button>
+                ))}
+              </div>
             </form>
           </div>
         )}

@@ -1,13 +1,49 @@
 import { describe, expect, it } from 'vitest'
-import { buildDescricaoCell, createEmptyTask, formatTasksSummary, sumTaskMinutes, taskDuration } from './tasks'
+import {
+  buildDescricaoCell,
+  createEmptyTask,
+  createTag,
+  findTag,
+  formatTasksSummary,
+  sumTaskMinutes,
+  taskDuration,
+  TAG_COLOR_PALETTE,
+} from './tasks'
 
 describe('createEmptyTask', () => {
-  it('cria uma tarefa vazia com id único', () => {
+  it('cria uma tarefa vazia com id único e sem tag', () => {
     const a = createEmptyTask()
     const b = createEmptyTask()
-    expect(a).toMatchObject({ inicio: '', fim: '', tarefa: '' })
+    expect(a).toMatchObject({ inicio: '', fim: '', tarefa: '', tagId: null })
     expect(a.id).toBeTruthy()
     expect(a.id).not.toBe(b.id)
+  })
+})
+
+describe('createTag', () => {
+  it('cria uma tag com id único, nome e cor', () => {
+    const a = createTag('Reunião', '#7C5CBF')
+    const b = createTag('Reunião', '#7C5CBF')
+    expect(a).toMatchObject({ name: 'Reunião', color: '#7C5CBF' })
+    expect(a.id).toBeTruthy()
+    expect(a.id).not.toBe(b.id)
+  })
+
+  it('usa a primeira cor da paleta se nenhuma cor for informada', () => {
+    const a = createTag('Reunião')
+    expect(a.color).toBe(TAG_COLOR_PALETTE[0])
+  })
+})
+
+describe('findTag', () => {
+  it('encontra a tag pelo id', () => {
+    const tags = [createTag('Reunião', '#111'), createTag('Pausa', '#222')]
+    expect(findTag(tags, tags[1].id)).toMatchObject({ name: 'Pausa', color: '#222' })
+  })
+
+  it('retorna null quando não encontra', () => {
+    expect(findTag([], 'algum-id')).toBeNull()
+    expect(findTag([createTag('Reunião')], 'outro-id')).toBeNull()
   })
 })
 
@@ -47,9 +83,9 @@ describe('formatTasksSummary', () => {
     expect(formatTasksSummary(tarefas)).toBe('17:30–18:15 Ajustei relatório X\n18:15–19:00 Atendi chamado da chefe')
   })
 
-  it('ignora tarefas completamente vazias', () => {
+  it('ignora tarefas completamente vazias (sem horário, nome ou tag)', () => {
     const tarefas = [
-      { inicio: '', fim: '', tarefa: '' },
+      { inicio: '', fim: '', tarefa: '', tagId: null },
       { inicio: '17:30', fim: '18:15', tarefa: 'Ajustei relatório X' },
     ]
     expect(formatTasksSummary(tarefas)).toBe('17:30–18:15 Ajustei relatório X')
@@ -60,6 +96,23 @@ describe('formatTasksSummary', () => {
     expect(formatTasksSummary([{ inicio: '17:30', fim: '18:15', tarefa: '' }])).toBe('17:30–18:15')
   })
 
+  it('inclui o nome da tag (como #Tag) junto do horário e da tarefa', () => {
+    const tag = createTag('Reunião', '#7C5CBF')
+    const tarefas = [{ inicio: '17:30', fim: '18:15', tarefa: 'Alinhamento', tagId: tag.id }]
+    expect(formatTasksSummary(tarefas, [tag])).toBe('17:30–18:15 Alinhamento #Reunião')
+  })
+
+  it('inclui a tag mesmo sem descrição livre da tarefa', () => {
+    const tag = createTag('Pausa', '#111')
+    const tarefas = [{ inicio: '', fim: '', tarefa: '', tagId: tag.id }]
+    expect(formatTasksSummary(tarefas, [tag])).toBe('#Pausa')
+  })
+
+  it('não quebra se a tag referenciada não existir mais na lista', () => {
+    const tarefas = [{ inicio: '17:30', fim: '18:15', tarefa: 'Ajustei relatório X', tagId: 'tag-removida' }]
+    expect(formatTasksSummary(tarefas, [])).toBe('17:30–18:15 Ajustei relatório X')
+  })
+
   it('retorna string vazia sem tarefas', () => {
     expect(formatTasksSummary([])).toBe('')
     expect(formatTasksSummary()).toBe('')
@@ -67,7 +120,7 @@ describe('formatTasksSummary', () => {
 })
 
 describe('buildDescricaoCell', () => {
-  it('usa o resumo das tarefas quando existem, ignorando a descrição livre se ambas presentes', () => {
+  it('usa o resumo das tarefas quando existem, seguido da descrição livre se ambas presentes', () => {
     const row = {
       tarefas: [{ inicio: '17:30', fim: '18:15', tarefa: 'Ajustei relatório X' }],
       descricao: 'Observação geral do dia',
@@ -83,6 +136,12 @@ describe('buildDescricaoCell', () => {
   it('usa só as tarefas quando não há descrição livre', () => {
     const row = { tarefas: [{ inicio: '17:30', fim: '18:15', tarefa: 'Ajustei relatório X' }], descricao: '' }
     expect(buildDescricaoCell(row)).toBe('17:30–18:15 Ajustei relatório X')
+  })
+
+  it('repassa a lista de tags pra resolver o nome de cada tarefa marcada', () => {
+    const tag = createTag('Reunião', '#7C5CBF')
+    const row = { tarefas: [{ inicio: '17:30', fim: '18:15', tarefa: 'Alinhamento', tagId: tag.id }], descricao: '' }
+    expect(buildDescricaoCell(row, [tag])).toBe('17:30–18:15 Alinhamento #Reunião')
   })
 
   it('retorna string vazia quando não há nada', () => {
