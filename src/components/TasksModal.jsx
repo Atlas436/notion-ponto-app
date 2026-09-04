@@ -163,9 +163,10 @@ export default function TasksModal({ date, tarefas, tags, jornadaPadrao, onChang
                   <button
                     type="button"
                     onClick={() => onRemoveTag(tag.id)}
-                    className="flex items-center gap-1 text-xs text-cozy-muted transition-colors hover:text-red-600"
+                    aria-label={`Excluir tag ${tag.name}`}
+                    className="text-cozy-muted transition-colors hover:text-red-600"
                   >
-                    <Trash2 size={12} /> Excluir
+                    <Trash2 size={13} />
                   </button>
                 </li>
               ))}
