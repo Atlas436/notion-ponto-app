@@ -82,17 +82,21 @@ export default function TasksModal({ date, tarefas, tags, jornadaPadrao, onChang
               </div>
 
               {tags.length > 0 && (
-                <div className="mt-1.5 flex flex-wrap gap-1.5 pl-1">
-                  {tags.map((tag) => (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => updateTask(t.id, 'tarefa', tag)}
-                      className="rounded-full bg-cozy-weekend px-2 py-0.5 text-[11px] text-cozy-muted transition-colors hover:bg-cozy-accent/15 hover:text-cozy-accent"
-                    >
-                      {tag}
-                    </button>
-                  ))}
+                <div className="mt-1.5 pl-1">
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      if (e.target.value) updateTask(t.id, 'tarefa', e.target.value)
+                    }}
+                    className="rounded-lg border border-cozy-border bg-cozy-panel px-2 py-1 text-[11px] text-cozy-muted outline-none focus:border-cozy-accent"
+                  >
+                    <option value="">Selecionar tag…</option>
+                    {tags.map((tag) => (
+                      <option key={tag} value={tag}>
+                        {tag}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               )}
             </div>
