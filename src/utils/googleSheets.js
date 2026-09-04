@@ -1,4 +1,5 @@
 import { formatDateBR, minutesToTime } from './time'
+import { buildDescricaoCell } from './tasks'
 
 const GIS_SRC = 'https://accounts.google.com/gsi/client'
 const SHEETS_SCOPE = 'https://www.googleapis.com/auth/spreadsheets'
@@ -94,7 +95,7 @@ export function buildSheetValues({ colaborador, monthName, ano, computedRows, to
     row.saida || '',
     minutesToTime(row.totalMinutes),
     minutesToTime(row.extraMinutes),
-    row.descricao || '',
+    buildDescricaoCell(row),
   ])
   const footer = ['', '', '', 'Total do Mês', minutesToTime(totalMinutes), minutesToTime(totalExtraMinutes), '']
 

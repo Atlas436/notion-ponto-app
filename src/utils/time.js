@@ -75,6 +75,7 @@ export function generateMonthRows(year, month, holidayDates = new Set()) {
       entrada: nonWorkingDay ? '' : DEFAULT_ENTRADA,
       saida: nonWorkingDay ? '' : DEFAULT_SAIDA,
       descricao: '',
+      tarefas: [],
     })
   }
   return rows

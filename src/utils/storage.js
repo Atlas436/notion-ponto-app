@@ -5,6 +5,7 @@ const monthKey = (year, month) => `cozyPonto.month.${year}-${String(month).padSt
 const holidaysKey = (year) => `cozyPonto.holidays.${year}`
 const RECURRING_HOLIDAYS_KEY = 'cozyPonto.recurringHolidays'
 const GOOGLE_SHEETS_KEY = 'cozyPonto.googleSheets'
+const TASK_TAGS_KEY = 'cozyPonto.taskTags'
 
 export function loadSettings() {
   try {
@@ -107,6 +108,27 @@ export function loadGoogleSheetsSettings() {
 export function saveGoogleSheetsSettings(settings) {
   try {
     localStorage.setItem(GOOGLE_SHEETS_KEY, JSON.stringify(settings))
+  } catch {
+    // localStorage indisponível — ignora silenciosamente
+  }
+}
+
+// Tags de tarefas salvas pelo usuário (ex.: "Atendimento ao cliente", "Reunião"), pra
+// preencher rápido ao registrar uma tarefa em vez de redigitar. Lista global, não por mês/ano.
+export function loadTaskTags() {
+  try {
+    const raw = localStorage.getItem(TASK_TAGS_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+export function saveTaskTags(tags) {
+  try {
+    localStorage.setItem(TASK_TAGS_KEY, JSON.stringify(tags))
   } catch {
     // localStorage indisponível — ignora silenciosamente
   }

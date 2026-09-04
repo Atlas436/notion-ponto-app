@@ -1,5 +1,7 @@
-import { forwardRef } from 'react'
+import { forwardRef, useState } from 'react'
+import { ListChecks } from 'lucide-react'
 import { formatDateBR, minutesToTime } from '../utils/time'
+import TasksModal from './TasksModal'
 
 function rowBg(row) {
   if (row.holidayName) return 'bg-cozy-holidayBg'
@@ -7,10 +9,18 @@ function rowBg(row) {
   return 'bg-cozy-panel'
 }
 
+function taskLine(t) {
+  const time = t.inicio && t.fim ? `${t.inicio}–${t.fim}` : t.inicio || t.fim || ''
+  return [time, t.tarefa].filter(Boolean).join(' ')
+}
+
 const PontoTable = forwardRef(function PontoTable(
-  { colaborador, monthName, ano, jornadaPadrao, computedRows, totalMinutes, totalExtraMinutes, onUpdateRow },
+  { colaborador, monthName, ano, jornadaPadrao, computedRows, totalMinutes, totalExtraMinutes, onUpdateRow, taskTags, onAddTaskTag, onRemoveTaskTag },
   ref,
 ) {
+  const [openTasksFor, setOpenTasksFor] = useState(null)
+  const openRow = openTasksFor ? computedRows.find((r) => r.date === openTasksFor) : null
+
   return (
     <div ref={ref} className="rounded-2xl border border-cozy-border bg-cozy-panel shadow-sm">
       <div className="border-b border-cozy-border px-5 py-4">
@@ -34,75 +44,94 @@ const PontoTable = forwardRef(function PontoTable(
             </tr>
           </thead>
           <tbody>
-            {computedRows.map((row) => (
-              <tr key={row.date} className={`border-b border-cozy-border last:border-b-0 ${rowBg(row)}`}>
-                <td
-                  className={`whitespace-nowrap px-3 py-1 font-medium ${
-                    row.isToday
-                      ? 'border-l-4 border-l-cozy-accent font-bold text-cozy-accent'
-                      : 'text-cozy-text'
-                  }`}
-                >
-                  {formatDateBR(row.date)}
-                  {row.isToday && (
-                    <span className="ml-2 rounded-full bg-cozy-accent/15 px-2 py-0.5 text-[10px] font-medium no-print">
-                      hoje
-                    </span>
-                  )}
-                </td>
-                <td className="whitespace-nowrap px-3 py-1 text-cozy-muted">
-                  <div className="flex items-center gap-1.5">
-                    {row.weekdayLabel}
-                    {row.holidayName && (
-                      <span
-                        title={row.holidayName}
-                        className="rounded-full bg-cozy-holiday/15 px-2 py-0.5 text-[10px] font-medium text-cozy-holiday"
-                      >
-                        {row.holidayName}
+            {computedRows.map((row) => {
+              const tarefas = row.tarefas ?? []
+              const filledTasks = tarefas.filter((t) => t.inicio || t.fim || t.tarefa)
+              return (
+                <tr key={row.date} className={`border-b border-cozy-border last:border-b-0 ${rowBg(row)}`}>
+                  <td
+                    className={`whitespace-nowrap px-3 py-1 font-medium ${
+                      row.isToday
+                        ? 'border-l-4 border-l-cozy-accent font-bold text-cozy-accent'
+                        : 'text-cozy-text'
+                    }`}
+                  >
+                    {formatDateBR(row.date)}
+                    {row.isToday && (
+                      <span className="ml-2 rounded-full bg-cozy-accent/15 px-2 py-0.5 text-[10px] font-medium no-print">
+                        hoje
                       </span>
                     )}
-                  </div>
-                </td>
-                <td className="px-1 py-1">
-                  <input
-                    type="time"
-                    value={row.entrada}
-                    onChange={(e) => onUpdateRow(row.date, 'entrada', e.target.value)}
-                    className="cell-input"
-                  />
-                </td>
-                <td className="px-1 py-1">
-                  <input
-                    type="time"
-                    value={row.saida}
-                    onChange={(e) => onUpdateRow(row.date, 'saida', e.target.value)}
-                    className="cell-input"
-                  />
-                </td>
-                <td className="whitespace-nowrap px-3 py-1 font-mono text-cozy-text">
-                  {minutesToTime(row.totalMinutes)}
-                </td>
-                <td className="whitespace-nowrap px-3 py-1 font-mono">
-                  <span className={row.extraMinutes > 0 ? 'font-semibold text-cozy-extra' : 'text-cozy-muted'}>
-                    {minutesToTime(row.extraMinutes)}
-                  </span>
-                  {row.weekend && !row.holidayName && row.totalMinutes > 0 && (
-                    <span className="ml-2 rounded-full bg-cozy-extra/15 px-2 py-0.5 text-[10px] font-medium text-cozy-extra no-print">
-                      fim de semana
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-1 text-cozy-muted">
+                    <div className="flex items-center gap-1.5">
+                      {row.weekdayLabel}
+                      {row.holidayName && (
+                        <span
+                          title={row.holidayName}
+                          className="rounded-full bg-cozy-holiday/15 px-2 py-0.5 text-[10px] font-medium text-cozy-holiday"
+                        >
+                          {row.holidayName}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-1 py-1">
+                    <input
+                      type="time"
+                      value={row.entrada}
+                      onChange={(e) => onUpdateRow(row.date, 'entrada', e.target.value)}
+                      className="cell-input"
+                    />
+                  </td>
+                  <td className="px-1 py-1">
+                    <input
+                      type="time"
+                      value={row.saida}
+                      onChange={(e) => onUpdateRow(row.date, 'saida', e.target.value)}
+                      className="cell-input"
+                    />
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-1 font-mono text-cozy-text">
+                    {minutesToTime(row.totalMinutes)}
+                  </td>
+                  <td className="whitespace-nowrap px-3 py-1 font-mono">
+                    <span className={row.extraMinutes > 0 ? 'font-semibold text-cozy-extra' : 'text-cozy-muted'}>
+                      {minutesToTime(row.extraMinutes)}
                     </span>
-                  )}
-                </td>
-                <td className="px-1 py-1">
-                  <input
-                    type="text"
-                    value={row.descricao}
-                    onChange={(e) => onUpdateRow(row.date, 'descricao', e.target.value)}
-                    placeholder="Ex.: Ajustei relatório X"
-                    className="cell-input min-w-[220px]"
-                  />
-                </td>
-              </tr>
-            ))}
+                    {row.weekend && !row.holidayName && row.totalMinutes > 0 && (
+                      <span className="ml-2 rounded-full bg-cozy-extra/15 px-2 py-0.5 text-[10px] font-medium text-cozy-extra no-print">
+                        fim de semana
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-1 py-1 align-top">
+                    <input
+                      type="text"
+                      value={row.descricao}
+                      onChange={(e) => onUpdateRow(row.date, 'descricao', e.target.value)}
+                      placeholder="Ex.: Ajustei relatório X"
+                      className="cell-input min-w-[220px]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setOpenTasksFor(row.date)}
+                      className="mt-1 flex items-center gap-1 rounded-full bg-cozy-accent/10 px-2 py-0.5 text-[10px] font-medium text-cozy-accent no-print"
+                    >
+                      <ListChecks size={11} />
+                      Tarefas{filledTasks.length > 0 ? ` (${filledTasks.length})` : ''}
+                    </button>
+                    {filledTasks.length > 0 && (
+                      <ul className="mt-1 space-y-0.5 text-[11px] text-cozy-muted">
+                        {filledTasks.map((t) => (
+                          <li key={t.id}>{taskLine(t)}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </td>
+                </tr>
+              )
+            })}
             {computedRows.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-3 py-10 text-center text-sm text-cozy-muted">
@@ -127,6 +156,19 @@ const PontoTable = forwardRef(function PontoTable(
           )}
         </table>
       </div>
+
+      {openRow && (
+        <TasksModal
+          date={openRow.date}
+          tarefas={openRow.tarefas ?? []}
+          tags={taskTags}
+          jornadaPadrao={jornadaPadrao}
+          onChangeTasks={(tarefas) => onUpdateRow(openRow.date, 'tarefas', tarefas)}
+          onAddTag={onAddTaskTag}
+          onRemoveTag={onRemoveTaskTag}
+          onClose={() => setOpenTasksFor(null)}
+        />
+      )}
     </div>
   )
 })

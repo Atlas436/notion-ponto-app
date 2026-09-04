@@ -14,6 +14,8 @@ import {
   saveRecurringHolidays,
   loadGoogleSheetsSettings,
   saveGoogleSheetsSettings,
+  loadTaskTags,
+  saveTaskTags,
 } from './utils/storage'
 import { getDefaultHolidays, projectRecurringHolidays } from './utils/holidays'
 import { computeRow, generateMonthRows, MONTH_NAMES, parseTimeToMinutes, todayDateKey } from './utils/time'
@@ -47,6 +49,9 @@ export default function App() {
   const [sheetsError, setSheetsError] = useState('')
   const [sheetsLastSyncedAt, setSheetsLastSyncedAt] = useState(null)
   const [showGoogleSheets, setShowGoogleSheets] = useState(false)
+
+  // Tags de tarefas salvas (ex.: "Reunião"), pra preencher rápido no detalhamento do dia.
+  const [taskTags, setTaskTags] = useState(() => loadTaskTags())
 
   // Lista exibida/usada nos cálculos: feriados do ano + recorrentes projetados sobre o ano.
   const displayHolidays = useMemo(() => {
@@ -172,6 +177,19 @@ export default function App() {
       (a, b) => (a.date > b.date ? 1 : -1),
     )
     updateHolidays(next)
+  }
+
+  function addTaskTag(tag) {
+    if (taskTags.includes(tag)) return
+    const next = [...taskTags, tag]
+    setTaskTags(next)
+    saveTaskTags(next)
+  }
+
+  function removeTaskTag(tag) {
+    const next = taskTags.filter((t) => t !== tag)
+    setTaskTags(next)
+    saveTaskTags(next)
   }
 
   function handleExportExcel() {
@@ -316,6 +334,9 @@ export default function App() {
           totalMinutes={totalMinutes}
           totalExtraMinutes={totalExtraMinutes}
           onUpdateRow={updateRow}
+          taskTags={taskTags}
+          onAddTaskTag={addTaskTag}
+          onRemoveTaskTag={removeTaskTag}
         />
 
         <p className="mt-4 text-center text-xs text-cozy-muted no-print">

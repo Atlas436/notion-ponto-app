@@ -16,6 +16,7 @@ Um controle de ponto minimalista e aconchegante, com visual lo-fi inspirado no N
 - **Painel de Feriados** (botão "Feriados" no cabeçalho): feriados nacionais e o estadual de São Paulo são calculados automaticamente para o ano selecionado (inclusive os móveis, como Carnaval, Sexta-feira Santa e Corpus Christi) e já tratados como dia não-trabalhado. Você pode desmarcar qualquer um que não valha pra você ou adicionar uma data pessoal (aniversário, feriado municipal etc.) — por padrão ela se repete todo ano automaticamente, sem precisar recadastrar.
 - **Fins de semana e feriados destacados** com fundo sutil (tons pastéis diferentes para cada um), no estilo Notion.
 - **Dia de hoje em destaque** na tabela (borda lavanda + etiqueta "hoje"), só em dias úteis — some nos fins de semana.
+- **Detalhamento de tarefas por dia** (botão "Tarefas" na célula de Descrição): registre o horário exato (início/fim) de cada atividade dentro da sua jornada, com duração calculada automaticamente. Dá pra salvar "tags" de tarefas recorrentes (ex.: "Reunião") pra preencher com um clique, sem redigitar. O detalhamento aparece também no Excel, no PDF e na planilha do Google Sheets.
 - **Totais do mês** no rodapé da tabela: total de horas trabalhadas e total de horas extras.
 - **Persistência automática** no `localStorage` do navegador — nada é enviado para servidores, os dados ficam salvos por colaborador/mês/ano mesmo depois de fechar a aba.
 - **Exportação para Excel (.xlsx)** com relatório organizado (dados + totais).
