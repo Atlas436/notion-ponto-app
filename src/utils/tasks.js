@@ -17,7 +17,7 @@ export function createEmptyTask() {
     typeof crypto !== 'undefined' && crypto.randomUUID
       ? crypto.randomUUID()
       : `task-${Date.now()}-${Math.random().toString(36).slice(2)}`
-  return { id, inicio: '', fim: '', tarefa: '', tagId: null }
+  return { id, inicio: '', fim: '', tarefa: '', tagIds: [] }
 }
 
 export function createTag(name, color) {
@@ -40,18 +40,31 @@ export function findTag(tags, tagId) {
   return tags.find((t) => t.id === tagId) ?? null
 }
 
+// Lê os ids de tag de uma tarefa. Aceita o formato antigo (tagId único, de antes de
+// permitir múltiplas tags) e o novo (tagIds, array), pra não perder dados salvos.
+export function getTaskTagIds(task) {
+  if (Array.isArray(task.tagIds)) return task.tagIds
+  return task.tagId ? [task.tagId] : []
+}
+
+export function findTags(tags, tagIds) {
+  return tagIds.map((id) => findTag(tags, id)).filter(Boolean)
+}
+
 function formatTaskLine(task, tags) {
   const time = task.inicio && task.fim ? `${task.inicio}–${task.fim}` : task.inicio || task.fim || ''
-  const tag = task.tagId ? findTag(tags, task.tagId) : null
-  const label = [task.tarefa, tag ? `#${tag.name}` : ''].filter(Boolean).join(' ')
+  const tagsLabel = findTags(tags, getTaskTagIds(task))
+    .map((tag) => `#${tag.name}`)
+    .join(' ')
+  const label = [task.tarefa, tagsLabel].filter(Boolean).join(' ')
   if (time && label) return `${time} ${label}`
   return time || label || ''
 }
 
-// Uma linha por tarefa preenchida (horário, nome e/ou tag), pra usar nas exportações.
+// Uma linha por tarefa preenchida (horário, nome e/ou tags), pra usar nas exportações.
 export function formatTasksSummary(tarefas = [], tags = []) {
   return tarefas
-    .filter((t) => t.inicio || t.fim || t.tarefa || t.tagId)
+    .filter((t) => t.inicio || t.fim || t.tarefa || getTaskTagIds(t).length > 0)
     .map((t) => formatTaskLine(t, tags))
     .join('\n')
 }

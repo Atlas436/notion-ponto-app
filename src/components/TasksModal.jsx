@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Check, Plus, Tag, Trash2, X } from 'lucide-react'
 import { formatDateBR, minutesToTime } from '../utils/time'
-import { createEmptyTask, findTag, sumTaskMinutes, taskDuration, TAG_COLOR_PALETTE } from '../utils/tasks'
+import { createEmptyTask, findTags, getTaskTagIds, sumTaskMinutes, taskDuration, TAG_COLOR_PALETTE } from '../utils/tasks'
 
 export default function TasksModal({ date, tarefas, tags, jornadaPadrao, onChangeTasks, onAddTag, onRemoveTag, onClose }) {
   const [newTagName, setNewTagName] = useState('')
@@ -21,7 +21,24 @@ export default function TasksModal({ date, tarefas, tags, jornadaPadrao, onChang
   }
 
   function addTaskWithTag(tagId) {
-    onChangeTasks([...tarefas, { ...createEmptyTask(), tagId }])
+    onChangeTasks([...tarefas, { ...createEmptyTask(), tagIds: [tagId] }])
+  }
+
+  function addTagToTask(id, tagId) {
+    onChangeTasks(
+      tarefas.map((t) => {
+        if (t.id !== id) return t
+        const current = getTaskTagIds(t)
+        if (current.includes(tagId)) return t
+        return { ...t, tagIds: [...current, tagId] }
+      }),
+    )
+  }
+
+  function removeTagFromTask(id, tagId) {
+    onChangeTasks(
+      tarefas.map((t) => (t.id === id ? { ...t, tagIds: getTaskTagIds(t).filter((tid) => tid !== tagId) } : t)),
+    )
   }
 
   function handleAddTag(e) {
@@ -52,7 +69,9 @@ export default function TasksModal({ date, tarefas, tags, jornadaPadrao, onChang
 
         <div className="mt-4 space-y-2">
           {tarefas.map((t) => {
-            const selectedTag = t.tagId ? findTag(tags, t.tagId) : null
+            const assignedTagIds = getTaskTagIds(t)
+            const assignedTags = findTags(tags, assignedTagIds)
+            const availableTags = tags.filter((tag) => !assignedTagIds.includes(tag.id))
             return (
               <div key={t.id} className="rounded-xl border border-cozy-border p-2.5">
                 <div className="flex flex-wrap items-center gap-2">
@@ -89,39 +108,46 @@ export default function TasksModal({ date, tarefas, tags, jornadaPadrao, onChang
                   </button>
                 </div>
 
-                <div className="mt-1.5 flex items-center gap-2 pl-1">
+                <div className="mt-1.5 flex flex-wrap items-center gap-2 pl-1">
                   <select
                     value=""
                     onChange={(e) => {
-                      if (e.target.value) updateTask(t.id, 'tagId', e.target.value)
+                      if (e.target.value) addTagToTask(t.id, e.target.value)
                     }}
-                    disabled={tags.length === 0}
+                    disabled={availableTags.length === 0}
                     className="rounded-lg border border-cozy-border bg-cozy-panel px-2 py-1 text-[11px] text-cozy-muted outline-none focus:border-cozy-accent disabled:opacity-50"
                   >
-                    <option value="">{tags.length === 0 ? 'Nenhuma tag salva' : 'Selecionar tag…'}</option>
-                    {tags.map((tag) => (
+                    <option value="">
+                      {tags.length === 0
+                        ? 'Nenhuma tag salva'
+                        : availableTags.length === 0
+                          ? 'Todas as tags já adicionadas'
+                          : 'Adicionar tag…'}
+                    </option>
+                    {availableTags.map((tag) => (
                       <option key={tag.id} value={tag.id}>
                         {tag.name}
                       </option>
                     ))}
                   </select>
 
-                  {selectedTag && (
+                  {assignedTags.map((tag) => (
                     <span
+                      key={tag.id}
                       className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium"
-                      style={{ backgroundColor: `${selectedTag.color}22`, color: selectedTag.color }}
+                      style={{ backgroundColor: `${tag.color}22`, color: tag.color }}
                     >
-                      {selectedTag.name}
+                      {tag.name}
                       <button
                         type="button"
-                        onClick={() => updateTask(t.id, 'tagId', null)}
-                        aria-label={`Remover tag ${selectedTag.name} desta tarefa`}
+                        onClick={() => removeTagFromTask(t.id, tag.id)}
+                        aria-label={`Remover tag ${tag.name} desta tarefa`}
                         className="opacity-70 hover:opacity-100"
                       >
                         <X size={11} />
                       </button>
                     </span>
-                  )}
+                  ))}
                 </div>
               </div>
             )
