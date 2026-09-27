@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { BriefcaseBusiness, Download, FileText, Mail, Plus, ReceiptText, Send, WalletCards } from 'lucide-react'
-import { exportFreelancerToExcel } from '../utils/exportFreelancerExcel'
+import { exportFreelancerToExcel } from './exportExcel'
 
 const KEY = 'cozyPonto.freelancer'
 const money = (value) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0))
