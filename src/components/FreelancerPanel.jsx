@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { BriefcaseBusiness, Download, FileText, Plus, ReceiptText, Send, WalletCards } from 'lucide-react'
+import { BriefcaseBusiness, Download, FileText, Mail, Plus, ReceiptText, Send, WalletCards } from 'lucide-react'
 import { exportFreelancerToExcel } from '../utils/exportFreelancerExcel'
 
 const KEY = 'cozyPonto.freelancer'
@@ -72,6 +72,12 @@ export default function FreelancerPanel({ monthName, year, onGoogleSync, googleC
     setPaymentForm({ projectId: '', amount: '', dueDate: '', status: 'pending' })
   }
   function changeStatus(projectId, status) { setProjects((current) => current.map((project) => project.id === projectId ? { ...project, status } : project)) }
+  function sendEmail() {
+    if (!selectedDocument) return
+    const subject = encodeURIComponent('Projeto ' + selectedDocument.name)
+    const body = encodeURIComponent('Olá,\n\nSegue o resumo do projeto ' + selectedDocument.name + '.\n\nValor: ' + money(selectedDocument.billed) + '\nHoras registradas: ' + hours(selectedDocument.allMinutes) + '\n\nEnviado pelo Cozy Freelancer.')
+    window.location.href = 'mailto:?subject=' + subject + '&body=' + body
+  }
   function printDocument(type) {
     if (!selectedDocument) return
     const popup = window.open('', '_blank', 'width=800,height=700')
@@ -102,7 +108,7 @@ export default function FreelancerPanel({ monthName, year, onGoogleSync, googleC
 
     <div className="grid gap-6 lg:grid-cols-2">
       <form onSubmit={addPayment} className="rounded-2xl border border-cozy-border bg-cozy-panel p-5"><h3 className="flex items-center gap-2 font-semibold text-cozy-text"><WalletCards size={18}/> Cobranças e parcelas</h3><p className="mt-1 text-xs text-cozy-muted">Adicione cada parcela separadamente para acompanhar o que falta receber.</p><div className="mt-3 grid gap-3 sm:grid-cols-2"><select required value={paymentForm.projectId} onChange={(e) => setPaymentForm({...paymentForm,projectId:e.target.value})} className="rounded-xl border border-cozy-border px-3 py-2 text-sm"><option value="">Projeto</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select><input required type="number" min="0" step="0.01" placeholder="Valor (R$)" value={paymentForm.amount} onChange={(e) => setPaymentForm({...paymentForm,amount:e.target.value})} className="rounded-xl border border-cozy-border px-3 py-2 text-sm"/><input type="date" value={paymentForm.dueDate} onChange={(e) => setPaymentForm({...paymentForm,dueDate:e.target.value})} className="rounded-xl border border-cozy-border px-3 py-2 text-sm"/><select value={paymentForm.status} onChange={(e) => setPaymentForm({...paymentForm,status:e.target.value})} className="rounded-xl border border-cozy-border px-3 py-2 text-sm"><option value="pending">Pendente</option><option value="paid">Recebido</option></select></div><button className="mt-4 flex items-center gap-1 rounded-xl bg-cozy-accent px-3 py-2 text-sm font-medium text-white"><Plus size={15}/> Adicionar cobrança</button></form>
-      <div className="rounded-2xl border border-cozy-border bg-cozy-panel p-5"><h3 className="font-semibold text-cozy-text">Proposta e recibo</h3><p className="mt-1 text-xs text-cozy-muted">Gera uma versão limpa para imprimir ou salvar como PDF no navegador.</p><select value={documentProjectId} onChange={(e) => setDocumentProjectId(e.target.value)} className="mt-3 w-full rounded-xl border border-cozy-border px-3 py-2 text-sm"><option value="">Escolha um projeto</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select><div className="mt-3 flex gap-2"><button disabled={!selectedDocument} onClick={() => printDocument('proposal')} className="flex items-center gap-1 rounded-xl border border-cozy-border px-3 py-2 text-sm disabled:opacity-50"><FileText size={15}/> Proposta</button><button disabled={!selectedDocument} onClick={() => printDocument('receipt')} className="flex items-center gap-1 rounded-xl border border-cozy-border px-3 py-2 text-sm disabled:opacity-50"><ReceiptText size={15}/> Recibo</button></div></div>
+      <div className="rounded-2xl border border-cozy-border bg-cozy-panel p-5"><h3 className="font-semibold text-cozy-text">Proposta e recibo</h3><p className="mt-1 text-xs text-cozy-muted">Gera uma versão limpa para imprimir ou salvar como PDF no navegador.</p><select value={documentProjectId} onChange={(e) => setDocumentProjectId(e.target.value)} className="mt-3 w-full rounded-xl border border-cozy-border px-3 py-2 text-sm"><option value="">Escolha um projeto</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select><div className="mt-3 flex gap-2"><button disabled={!selectedDocument} onClick={() => printDocument('proposal')} className="flex items-center gap-1 rounded-xl border border-cozy-border px-3 py-2 text-sm disabled:opacity-50"><FileText size={15}/> Proposta</button><button disabled={!selectedDocument} onClick={() => printDocument('receipt')} className="flex items-center gap-1 rounded-xl border border-cozy-border px-3 py-2 text-sm disabled:opacity-50"><ReceiptText size={15}/> Recibo</button><button disabled={!selectedDocument} onClick={sendEmail} className="flex items-center gap-1 rounded-xl border border-cozy-border px-3 py-2 text-sm disabled:opacity-50"><Mail size={15}/> E-mail</button></div></div>
     </div>
   </section>
 }
