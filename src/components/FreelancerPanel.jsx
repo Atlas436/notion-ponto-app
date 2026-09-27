@@ -20,7 +20,7 @@ function duration(start, end) {
   return finish >= initial ? finish - initial : finish + 1440 - initial
 }
 
-export default function FreelancerPanel({ monthName, year, onGoogleSync, googleConnected, googleStatus }) {
+export default function FreelancerPanel({ monthName, year, onGoogleSync, googleConnected, googleStatus, autoSync }) {
   const initial = useMemo(loadData, [])
   const [projects, setProjects] = useState(initial.projects)
   const [entries, setEntries] = useState(initial.entries)
@@ -32,6 +32,12 @@ export default function FreelancerPanel({ monthName, year, onGoogleSync, googleC
 
   useEffect(() => { localStorage.setItem(KEY, JSON.stringify({ projects, entries, payments })) }, [projects, entries, payments])
   const prefix = year + '-' + String(new Date().getMonth() + 1).padStart(2, '0')
+  useEffect(() => {
+    if (!autoSync || !googleConnected) return
+    const timer = setTimeout(() => onGoogleSync({ projects, entries, payments }), 2000)
+    return () => clearTimeout(timer)
+  }, [projects, entries, payments, autoSync, googleConnected, onGoogleSync])
+
   const monthlyEntries = entries.filter((entry) => entry.date.startsWith(prefix))
   const monthlyProjects = projects.filter((project) => project.monthly || monthlyEntries.some((entry) => entry.projectId === project.id))
   const summaries = projects.map((project) => {
