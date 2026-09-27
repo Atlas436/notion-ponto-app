@@ -373,6 +373,7 @@ export default function App() {
             onGoogleSync={handleFreelancerSync}
             googleConnected={Boolean(sheetsAccessToken)}
             googleStatus={sheetsStatus}
+            autoSync={sheetsAutoSync}
           />
         )}
 
