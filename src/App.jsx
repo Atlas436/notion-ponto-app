@@ -3,7 +3,7 @@ import Header from './components/Header'
 import HolidaysPanel from './components/HolidaysPanel'
 import GoogleSheetsPanel from './components/GoogleSheetsPanel'
 import PontoTable from './components/PontoTable'
-import FreelancerPanel from './components/FreelancerPanel'
+import FreelancerPanel from './freelancer/FreelancerPanel'
 import {
   loadSettings,
   saveSettings,
@@ -23,7 +23,7 @@ import { createTag } from './utils/tasks'
 import { computeRow, generateMonthRows, MONTH_NAMES, parseTimeToMinutes, todayDateKey } from './utils/time'
 import { exportToExcel } from './utils/exportExcel'
 import { extractSpreadsheetId, requestAccessToken, syncToGoogleSheet } from './utils/googleSheets'
-import { syncFreelancerToGoogleSheet } from './utils/freelancerGoogleSheets'
+import { syncFreelancerToGoogleSheet } from './freelancer/googleSheets'
 
 const today = new Date()
 const initialSettings = loadSettings()
