@@ -36,7 +36,9 @@ export default function FreelancerPanel({ monthName, year, onGoogleSync, googleC
     if (!autoSync || !googleConnected) return
     const timer = setTimeout(() => onGoogleSync({ projects, entries, payments }), 2000)
     return () => clearTimeout(timer)
-  }, [projects, entries, payments, autoSync, googleConnected, onGoogleSync])
+    // onGoogleSync is intentionally omitted: App recreates the callback after each status update.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projects, entries, payments, autoSync, googleConnected])
 
   const monthlyEntries = entries.filter((entry) => entry.date.startsWith(prefix))
   const monthlyProjects = projects.filter((project) => project.monthly || monthlyEntries.some((entry) => entry.projectId === project.id))
