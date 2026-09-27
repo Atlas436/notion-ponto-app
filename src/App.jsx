@@ -3,6 +3,7 @@ import Header from './components/Header'
 import HolidaysPanel from './components/HolidaysPanel'
 import GoogleSheetsPanel from './components/GoogleSheetsPanel'
 import PontoTable from './components/PontoTable'
+import FreelancerPanel from './freelancer/FreelancerPanel'
 import {
   loadSettings,
   saveSettings,
@@ -22,6 +23,7 @@ import { createTag } from './utils/tasks'
 import { computeRow, generateMonthRows, MONTH_NAMES, parseTimeToMinutes, todayDateKey } from './utils/time'
 import { exportToExcel } from './utils/exportExcel'
 import { extractSpreadsheetId, requestAccessToken, syncToGoogleSheet } from './utils/googleSheets'
+import { syncFreelancerToGoogleSheet } from './freelancer/googleSheets'
 
 const today = new Date()
 const initialSettings = loadSettings()
@@ -40,6 +42,7 @@ export default function App() {
   // Datas pessoais que se repetem todo ano (ex.: aniversário) — guardadas só por dia/mês.
   const [recurringHolidays, setRecurringHolidays] = useState(() => loadRecurringHolidays())
   const [showHolidays, setShowHolidays] = useState(false)
+  const [mode, setMode] = useState('ponto')
 
   const initialSheetsSettings = useMemo(() => loadGoogleSheetsSettings(), [])
   const [sheetsClientId, setSheetsClientId] = useState(initialSheetsSettings.clientId)
@@ -267,6 +270,26 @@ export default function App() {
     syncNow(sheetsAccessToken)
   }
 
+  async function handleFreelancerSync({ projects, entries, payments }) {
+    if (!sheetsAccessToken) return
+    const spreadsheetId = extractSpreadsheetId(sheetsLink)
+    if (!spreadsheetId) {
+      setSheetsStatus('error')
+      setSheetsError('Cole o link ou o ID da planilha antes de sincronizar.')
+      return
+    }
+    setSheetsStatus('syncing')
+    try {
+      await syncFreelancerToGoogleSheet({ spreadsheetId, accessToken: sheetsAccessToken, projects, entries, payments, monthName: MONTH_NAMES[mes - 1], year: ano })
+      setSheetsStatus('success')
+      setSheetsError('')
+      setSheetsLastSyncedAt(new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))
+    } catch (err) {
+      setSheetsStatus('error')
+      setSheetsError(err.message)
+    }
+  }
+
   // Sincronização automática: espera 2s sem novas edições antes de mandar pro Google Sheets,
   // pra não estourar a cota da API a cada tecla digitada.
   useEffect(() => {
@@ -296,6 +319,8 @@ export default function App() {
         onGenerateReset={handleGenerateReset}
         onExportExcel={handleExportExcel}
         onExportPdf={handleExportPdf}
+        mode={mode}
+        onModeChange={setMode}
       />
 
       <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
@@ -326,7 +351,8 @@ export default function App() {
           />
         )}
 
-        <PontoTable
+{mode === 'ponto' ? (
+          <PontoTable
           ref={reportRef}
           colaborador={colaborador}
           monthName={MONTH_NAMES[mes - 1]}
@@ -340,6 +366,16 @@ export default function App() {
           onAddTaskTag={addTaskTag}
           onRemoveTaskTag={removeTaskTag}
         />
+        ) : (
+          <FreelancerPanel
+            monthName={MONTH_NAMES[mes - 1]}
+            year={ano}
+            onGoogleSync={handleFreelancerSync}
+            googleConnected={Boolean(sheetsAccessToken)}
+            googleStatus={sheetsStatus}
+            autoSync={sheetsAutoSync}
+          />
+        )}
 
         <p className="mt-4 text-center text-xs text-cozy-muted no-print">
           Seus dados são salvos automaticamente no navegador (localStorage) — nada é enviado para nenhum servidor.

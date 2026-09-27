@@ -1,4 +1,4 @@
-import { Calendar, CalendarHeart, Clock, Download, FileSpreadsheet, Printer, RefreshCw, Sparkles, User } from 'lucide-react'
+import { BriefcaseBusiness, Calendar, CalendarHeart, Clock, Download, FileSpreadsheet, Printer, RefreshCw, Sparkles, User } from 'lucide-react'
 import { getDailyMessage } from '../utils/dailyMessage'
 import { MONTH_NAMES } from '../utils/time'
 
@@ -20,6 +20,8 @@ export default function Header({
   onGenerateReset,
   onExportExcel,
   onExportPdf,
+  mode,
+  onModeChange,
 }) {
   return (
     <header className="no-print sticky top-0 z-20 border-b border-cozy-border bg-cozy-bg/95 backdrop-blur">
@@ -29,8 +31,12 @@ export default function Header({
           <h1 className="font-semibold tracking-tight text-cozy-text">Cozy Ponto</h1>
         </div>
         <p className="mt-1 text-sm text-cozy-muted">
-          Controle de ponto minimalista para registro de jornada, tarefas diárias e cálculo de horas extras.
+          {mode === 'ponto' ? 'Controle de ponto minimalista para registro de jornada, tarefas diárias e cálculo de horas extras.' : 'Central freelancer para projetos, horas, cobranças e documentos.'}
         </p>
+        <div className="mt-3 flex gap-2">
+          <button type="button" onClick={() => onModeChange('ponto')} className={`rounded-xl px-3 py-1.5 text-sm font-medium ${mode === 'ponto' ? 'bg-cozy-accent text-white' : 'border border-cozy-border bg-cozy-panel text-cozy-text'}`}>Ponto</button>
+          <button type="button" onClick={() => onModeChange('freelancer')} className={`flex items-center gap-1 rounded-xl px-3 py-1.5 text-sm font-medium ${mode === 'freelancer' ? 'bg-cozy-accent text-white' : 'border border-cozy-border bg-cozy-panel text-cozy-text'}`}><BriefcaseBusiness size={14}/> Freelancer</button>
+        </div>
         <p className="mt-2 flex items-center gap-1.5 text-xs italic text-cozy-accent/80">
           <Sparkles size={12} className="shrink-0" aria-hidden="true" />
           {dailyMessage}
