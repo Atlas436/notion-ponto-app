@@ -29,3 +29,57 @@
     display: none !important;
   }
 }
+
+@layer base {
+  :root {
+    color-scheme: light;
+    --cozy-bg: 250 247 252;
+    --cozy-panel: 255 255 255;
+    --cozy-border: 232 225 240;
+    --cozy-text: 69 60 78;
+    --cozy-muted: 116 105 128;
+    --cozy-accent: 124 92 191;
+    --cozy-extra: 184 92 63;
+    --cozy-holiday: 155 92 143;
+    --cozy-weekend: 239 243 233;
+    --cozy-holidayBg: 251 234 242;
+    --cozy-sage: 91 122 82;
+  }
+  :root[data-theme='dark'] {
+    color-scheme: dark;
+    --cozy-bg: 23 22 30;
+    --cozy-panel: 33 31 42;
+    --cozy-border: 64 59 78;
+    --cozy-text: 239 233 245;
+    --cozy-muted: 177 166 192;
+    --cozy-accent: 160 130 222;
+    --cozy-extra: 232 159 129;
+    --cozy-holiday: 221 160 208;
+    --cozy-weekend: 34 46 39;
+    --cozy-holidayBg: 53 34 48;
+    --cozy-sage: 99 143 105;
+  }
+  html { background-color: rgb(var(--cozy-bg)); }
+  input, select, textarea { color: rgb(var(--cozy-text)); background-color: rgb(var(--cozy-panel)); }
+  button, input, select, textarea { scroll-margin-top: 18rem; }
+  button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 2px solid rgb(var(--cozy-accent)); outline-offset: 3px;
+  }
+}
+
+.freelancer-hero {
+  background: radial-gradient(ellipse at top right, rgb(var(--cozy-accent) / .16), transparent 65%), rgb(var(--cozy-panel));
+}
+.closing-panel { box-shadow: 0 8px 32px rgb(var(--cozy-accent) / .07); }
+:root[data-theme='dark'] .bg-white, :root[data-theme='dark'] .focus\:bg-white:focus { background-color: rgb(var(--cozy-panel)); }
+:root[data-theme='dark'] .text-red-700 { color: #f4a6a6; }
+:root[data-theme='dark'] .hover\:bg-red-50:hover { background-color: #452b35; }
+@media print {
+  :root[data-theme] {
+    color-scheme: light;
+    --cozy-bg: 255 255 255; --cozy-panel: 255 255 255;
+    --cozy-text: 40 35 45; --cozy-muted: 95 85 105;
+    --cozy-border: 210 205 220; --cozy-accent: 100 70 160;
+    --cozy-weekend: 239 243 233; --cozy-holidayBg: 251 234 242;
+  }
+}

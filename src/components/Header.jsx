@@ -1,3 +1,4 @@
+import ThemePicker from './ThemePicker'
 import { BriefcaseBusiness, Calendar, CalendarHeart, Clock, Download, FileSpreadsheet, Printer, RefreshCw, Sparkles, User } from 'lucide-react'
 import { getDailyMessage } from '../utils/dailyMessage'
 import { MONTH_NAMES } from '../utils/time'
@@ -33,7 +34,8 @@ export default function Header({
         <p className="mt-1 text-sm text-cozy-muted">
           {mode === 'ponto' ? 'Controle de ponto minimalista para registro de jornada, tarefas diárias e cálculo de horas extras.' : 'Central freelancer para projetos, horas, cobranças e documentos.'}
         </p>
-        <div className="mt-3 flex gap-2">
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <ThemePicker />
           <button type="button" onClick={() => onModeChange('ponto')} className={`rounded-xl px-3 py-1.5 text-sm font-medium ${mode === 'ponto' ? 'bg-cozy-accent text-white' : 'border border-cozy-border bg-cozy-panel text-cozy-text'}`}>Ponto</button>
           <button type="button" onClick={() => onModeChange('freelancer')} className={`flex items-center gap-1 rounded-xl px-3 py-1.5 text-sm font-medium ${mode === 'freelancer' ? 'bg-cozy-accent text-white' : 'border border-cozy-border bg-cozy-panel text-cozy-text'}`}><BriefcaseBusiness size={14}/> Freelancer</button>
         </div>
@@ -61,6 +63,7 @@ export default function Header({
               <Calendar size={13} /> Mês
             </span>
             <select
+              aria-label="Mês"
               value={mes}
               onChange={(e) => onMesChange(Number(e.target.value))}
               className="rounded-xl border border-cozy-border bg-cozy-panel px-3 py-1.5 text-sm text-cozy-text shadow-sm outline-none focus:border-cozy-accent focus:ring-2 focus:ring-cozy-accent/20"
@@ -77,13 +80,14 @@ export default function Header({
             <span className="text-xs font-medium text-cozy-muted">Ano</span>
             <input
               type="number"
+              aria-label="Ano"
               value={ano}
               onChange={(e) => onAnoChange(Number(e.target.value))}
               className="w-24 rounded-xl border border-cozy-border bg-cozy-panel px-3 py-1.5 text-sm text-cozy-text shadow-sm outline-none focus:border-cozy-accent focus:ring-2 focus:ring-cozy-accent/20"
             />
           </label>
 
-          <label className="flex flex-col gap-1">
+          {mode === 'ponto' && <><label className="flex flex-col gap-1">
             <span className="flex items-center gap-1 text-xs font-medium text-cozy-muted">
               <Clock size={13} /> Jornada padrão
             </span>
@@ -116,6 +120,7 @@ export default function Header({
             <CalendarHeart size={14} /> Feriados
           </button>
 
+          </>}
           <button
             type="button"
             onClick={onToggleGoogleSheets}
@@ -129,7 +134,7 @@ export default function Header({
             <FileSpreadsheet size={14} /> Google Sheets
           </button>
 
-          <div className="ml-auto flex flex-wrap gap-2">
+          {mode === 'ponto' && <div className="ml-auto flex flex-wrap gap-2">
             <button
               type="button"
               onClick={onExportExcel}
@@ -144,7 +149,7 @@ export default function Header({
             >
               <Printer size={14} /> Exportar PDF / Imprimir
             </button>
-          </div>
+          </div>}
         </div>
       </div>
     </header>

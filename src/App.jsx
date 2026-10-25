@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import Header from './components/Header'
 import HolidaysPanel from './components/HolidaysPanel'
 import GoogleSheetsPanel from './components/GoogleSheetsPanel'
 import PontoTable from './components/PontoTable'
-import FreelancerPanel from './freelancer/FreelancerPanel'
 import {
   loadSettings,
   saveSettings,
@@ -21,9 +20,10 @@ import {
 import { getDefaultHolidays, projectRecurringHolidays } from './utils/holidays'
 import { createTag } from './utils/tasks'
 import { computeRow, generateMonthRows, MONTH_NAMES, parseTimeToMinutes, todayDateKey } from './utils/time'
-import { exportToExcel } from './utils/exportExcel'
 import { extractSpreadsheetId, requestAccessToken, syncToGoogleSheet } from './utils/googleSheets'
 import { syncFreelancerToGoogleSheet } from './freelancer/googleSheets'
+
+const FreelancerPanel = lazy(() => import('./freelancer/FreelancerPanel'))
 
 const today = new Date()
 const initialSettings = loadSettings()
@@ -195,7 +195,8 @@ export default function App() {
     saveTaskTags(next)
   }
 
-  function handleExportExcel() {
+  async function handleExportExcel() {
+    const { exportToExcel } = await import('./utils/exportExcel')
     exportToExcel({
       colaborador: colaborador || 'Colaborador',
       monthName: MONTH_NAMES[mes - 1],
@@ -367,7 +368,9 @@ export default function App() {
           onRemoveTaskTag={removeTaskTag}
         />
         ) : (
+          <Suspense fallback={<p role="status" className="p-8 text-cozy-muted">Abrindo seu estúdio…</p>}>
           <FreelancerPanel
+            month={mes}
             monthName={MONTH_NAMES[mes - 1]}
             year={ano}
             onGoogleSync={handleFreelancerSync}
@@ -375,6 +378,7 @@ export default function App() {
             googleStatus={sheetsStatus}
             autoSync={sheetsAutoSync}
           />
+          </Suspense>
         )}
 
         <p className="mt-4 text-center text-xs text-cozy-muted no-print">

@@ -177,3 +177,20 @@ disco — expira sozinho depois de um tempo e você reconecta clicando no mesmo 
 ## 📄 Licença
 
 Este projeto ainda não possui uma licença definida.
+
+
+## Estúdio freelancer: meses e fechamentos
+
+- O seletor de mês/ano do cabeçalho controla os apontamentos, indicadores e exportações do freelancer. Trocar o mês não apaga dados: um mês sem lançamentos aparece vazio, enquanto os projetos e o histórico completo continuam disponíveis.
+- Em **Fechar um período**, escolha um projeto, marque os meses trabalhados (inclusive de anos diferentes) e informe o vencimento. O app soma as horas e gera uma cobrança: por hora usa a tarifa do projeto; valor fechado usa o preço integral uma única vez.
+- Meses já fechados ficam bloqueados para novas cobranças e apontamentos. Para corrigir, exclua a cobrança correspondente; as horas são preservadas. Valores fechados parcelados podem ser registrados em **Cobranças e parcelas**.
+- O painel separa horas do mês trabalhado, cobranças pelo vencimento e recebimentos pela data efetiva. **Marcar recebido** registra a data atual; desfazer devolve a cobrança a pendente.
+- Excel e a aba Google Sheets do freelancer mostram o mês selecionado, incluindo os meses e as horas vinculados às cobranças. Sincronizar outro mês substitui a visão da aba no Sheets; o histórico local permanece no navegador.
+- O seletor **Tema** oferece claro, noturno e automático conforme o sistema, com preferência salva no navegador.
+- O módulo freelancer e as bibliotecas de exportação são carregados sob demanda.
+
+### Formatação personalizada no Google Sheets freelancer
+
+A aba **Cozy Freelancer** usa três tabelas com posições fixas: projetos em **A:I**, horas em **K:Q** e cobranças em **S:Y**, sempre com cabeçalhos na linha 4. A sincronização atualiza apenas valores desses intervalos, preservando cores, fontes, bordas, larguras, notas e regras de formatação. As colunas J e R e as colunas a partir de Z ficam livres para suas anotações e fórmulas.
+
+Na primeira sincronização após a mudança de layout, ajuste sua formatação aos novos blocos. Valores e fórmulas digitados manualmente dentro dos intervalos gerenciados são substituídos; use as colunas livres para conteúdo próprio. Ao trocar o mês, valores antigos excedentes são removidos sem apagar estilos. A atualização dos três blocos é atômica.
