@@ -1,3 +1,26 @@
+export function duration(start, end) {
+  if (!start || !end) return 0
+  const parse = (time) => {
+    const [hours, minutes] = time.split(':').map(Number)
+    return hours * 60 + minutes
+  }
+  const initial = parse(start)
+  const finish = parse(end)
+  return finish >= initial ? finish - initial : finish + 1440 - initial
+}
+
+export function formatHours(minutes) {
+  const total = Number(minutes || 0)
+  return `${Math.floor(total / 60)}h ${String(total % 60).padStart(2, '0')}min`
+}
+
+// Keep exact minutes until formatting the final monetary amount.
+export function hourlyValue(entry, project) {
+  return project?.billingType === 'hour'
+    ? Number(entry.minutes || 0) / 60 * Number(project.rate || 0)
+    : null
+}
+
 export const monthKey = (year, month) =>
   `${year}-${String(month).padStart(2, '0')}`
 
@@ -67,7 +90,13 @@ export function monthlyData(projects, entries, payments, prefix) {
   const active = new Set(
     [...monthlyEntries, ...monthlyPayments].map((item) => item.projectId)
   )
+  const projectById = new Map(projects.map((project) => [project.id, project]))
+  const workedValue = monthlyEntries.reduce(
+    (sum, entry) => sum + (hourlyValue(entry, projectById.get(entry.projectId)) ?? 0),
+    0
+  )
   return {
+    workedValue,
     entries: monthlyEntries,
     payments: monthlyPayments,
     projects: projects.filter(

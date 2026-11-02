@@ -14,6 +14,9 @@ import {
 import {
   monthKey,
   monthlyData,
+  duration,
+  formatHours,
+  hourlyValue,
   summarizeProjects,
   projectMonths,
   closingTotal,
@@ -24,8 +27,7 @@ const money = (value) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
     Number(value || 0)
   )
-const hours = (minutes) =>
-  (Number(minutes || 0) / 60).toFixed(2).replace('.', ',') + ' h'
+const hours = formatHours
 const escapeHtml = (value) =>
   String(value).replace(
     /[&<>"']/g,
@@ -50,16 +52,6 @@ function loadData() {
   } catch {
     return { projects: [], entries: [], payments: [] }
   }
-}
-function duration(start, end) {
-  const parse = (time) => {
-    const [h, m] = (time || '').split(':').map(Number)
-    return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : 0
-  }
-  if (!start || !end) return 0
-  const initial = parse(start),
-    finish = parse(end)
-  return finish >= initial ? finish - initial : finish + 1440 - initial
 }
 
 export default function FreelancerPanel({
@@ -469,11 +461,12 @@ export default function FreelancerPanel({
         )}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {[
           ['Horas neste mês', hours(monthly.minutes)],
+          ['Valor das horas no mês', money(monthly.workedValue)],
           ['Projetos ativos no mês', monthly.projects.length],
-          ['A receber · vencimento no mês', money(monthly.pending)],
+          ['Cobranças pendentes no mês', money(monthly.pending)],
           ['Recebido neste mês', money(monthly.received)],
         ].map(([label, value]) => (
           <div
@@ -485,6 +478,12 @@ export default function FreelancerPanel({
           </div>
         ))}
       </div>
+
+      <p className="text-xs text-cozy-muted">
+        O valor das horas aparece assim que você registra o trabalho em projetos por hora.
+        Para gerar uma cobrança, use “Fechar um período” ou “Cobranças e parcelas”.
+        Projetos de valor fechado não entram no valor das horas.
+      </p>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <form
@@ -734,9 +733,17 @@ export default function FreelancerPanel({
                   {entry.description || 'Sem descrição'}
                 </p>
               </div>
-              <span className="font-medium text-cozy-accent">
-                {hours(entry.minutes)}
-              </span>
+              <div className="text-right">
+                <p className="font-medium text-cozy-accent">{hours(entry.minutes)}</p>
+                {projectById.get(entry.projectId)?.billingType === 'hour' ? (
+                  <p className="text-xs text-cozy-muted">
+                    {money(projectById.get(entry.projectId).rate)}/h ·{' '}
+                    <span className="font-semibold text-cozy-text">
+                      {money(hourlyValue(entry, projectById.get(entry.projectId)))}
+                    </span>
+                  </p>
+                ) : <p className="text-xs text-cozy-muted">Projeto de valor fechado</p>}
+              </div>
             </div>
           ))}
         </div>
