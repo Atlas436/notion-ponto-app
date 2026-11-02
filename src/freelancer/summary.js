@@ -117,3 +117,18 @@ export function monthlyData(projects, entries, payments, prefix) {
       .reduce((sum, payment) => sum + Number(payment.amount || 0), 0),
   }
 }
+
+
+export function isEntryClosed(entry, payments) {
+  return payments.some((payment) => payment.projectId === entry.projectId && payment.months?.includes(entry.date.slice(0, 7)))
+}
+
+export function editEntry(entries, entryId, changes, payments) {
+  const original = entries.find((entry) => entry.id === entryId)
+  if (!original) throw new Error('Apontamento não encontrado. Selecione-o novamente.')
+  const updated = { ...original, ...changes, id: original.id, minutes: duration(changes.start, changes.end) }
+  if (isEntryClosed(original, payments) || isEntryClosed(updated, payments)) {
+    throw new Error('Este período já foi fechado. Exclua a cobrança do fechamento para ajustar as horas; os apontamentos serão preservados.')
+  }
+  return entries.map((entry) => entry.id === entryId ? updated : entry)
+}

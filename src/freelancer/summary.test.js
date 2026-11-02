@@ -4,6 +4,8 @@ import {
   duration,
   formatHours,
   hourlyValue,
+  editEntry,
+  isEntryClosed,
   monthKey,
   monthlyData,
   projectMonths,
@@ -116,5 +118,30 @@ describe('hourly earnings use exact minutes', () => {
     expect(monthlyData([project], rows, [], '2026-11').workedValue).toBe(1.25)
     expect(duration('23:00', '01:35')).toBe(155)
     expect(duration('', '21:35')).toBe(0)
+  })
+})
+
+
+describe('editing freelancer entries', () => {
+  const original = { id: 'entry', projectId: 'p', date: '2026-11-01', start: '19:00', end: '21:50', minutes: 170, description: 'Rascunho' }
+  it('updates the original record and recalculates exact minutes and earnings', () => {
+    const other = { ...original, id: 'other' }
+    const updated = editEntry([original, other], original.id, { ...original, end: '21:35', description: 'Revisão' }, [])
+    expect(updated).toHaveLength(2)
+    expect(updated[0]).toMatchObject({ id: 'entry', minutes: 155, description: 'Revisão' })
+    expect(hourlyValue(updated[0], { billingType: 'hour', rate: 25 })).toBeCloseTo(64.583333)
+    expect(updated[1]).toBe(other)
+    expect(original.minutes).toBe(170)
+  })
+  it('allows changing the project and date without duplicating the record', () => {
+    const updated = editEntry([original], original.id, { ...original, projectId: 'other', date: '2026-11-02' }, [])
+    expect(updated[0]).toMatchObject({ id: 'entry', projectId: 'other', date: '2026-11-02' })
+  })
+  it('protects both source and destination periods from changes after closing', () => {
+    const payments = [{ projectId: 'p', months: ['2026-11'], status: 'paid' }]
+    expect(isEntryClosed(original, payments)).toBe(true)
+    expect(() => editEntry([original], original.id, { ...original, projectId: 'other' }, payments)).toThrow('fechado')
+    expect(() => editEntry([original], original.id, { ...original, projectId: 'closed' }, [{ projectId: 'closed', months: ['2026-11'] }])).toThrow('fechado')
+    expect(() => editEntry([original], 'missing', original, [])).toThrow('não encontrado')
   })
 })

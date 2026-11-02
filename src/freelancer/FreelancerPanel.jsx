@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   BriefcaseBusiness,
   Download,
@@ -17,6 +17,8 @@ import {
   duration,
   formatHours,
   hourlyValue,
+  editEntry,
+  isEntryClosed,
   summarizeProjects,
   projectMonths,
   closingTotal,
@@ -83,6 +85,8 @@ export default function FreelancerPanel({
     end: '',
     description: '',
   })
+  const [editingEntryId, setEditingEntryId] = useState(null)
+  const entryFormRef = useRef(null)
   const [paymentForm, setPaymentForm] = useState({
     projectId: '',
     amount: '',
@@ -108,7 +112,8 @@ export default function FreelancerPanel({
     }
   }, [projects, entries, payments])
   useEffect(() => {
-    setEntryForm((current) => ({ ...current, date: prefix + '-01' }))
+    setEditingEntryId(null)
+    setEntryForm((current) => ({ ...current, date: prefix + '-01', start: '', end: '', description: '' }))
   }, [prefix])
   const monthly = useMemo(
     () => monthlyData(projects, entries, payments, prefix),
@@ -257,20 +262,36 @@ export default function FreelancerPanel({
       )
       return
     }
-    setEntries((current) => [
-      ...current,
-      {
-        id: id(),
-        ...entryForm,
-        minutes: duration(entryForm.start, entryForm.end),
-      },
-    ])
+    if (editingEntryId) {
+      try {
+        setEntries(editEntry(entries, editingEntryId, entryForm, payments))
+        setEditingEntryId(null)
+        setNotice('Apontamento atualizado. As horas e o valor foram recalculados.')
+      } catch (error) { setNotice(error.message); return }
+    } else {
+      setEntries((current) => [...current, { id: id(), ...entryForm, minutes: duration(entryForm.start, entryForm.end) }])
+    }
     setEntryForm((current) => ({
       ...current,
       start: '',
       end: '',
       description: '',
     }))
+  }
+  function startEntryEdit(entry) {
+    if (isEntryClosed(entry, payments)) {
+      setNotice('Este período já foi fechado. Exclua a cobrança do fechamento para editar o apontamento; as horas serão preservadas.')
+      return
+    }
+    setEditingEntryId(entry.id)
+    setEntryForm({ projectId: entry.projectId, date: entry.date, start: entry.start, end: entry.end, description: entry.description || '' })
+    setNotice('')
+    entryFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    entryFormRef.current?.querySelector('select')?.focus({ preventScroll: true })
+  }
+  function cancelEntryEdit() {
+    setEditingEntryId(null)
+    setEntryForm((current) => ({ ...current, start: '', end: '', description: '' }))
   }
   function addPayment(event) {
     event.preventDefault()
@@ -358,6 +379,7 @@ export default function FreelancerPanel({
     setPaymentForm((current) =>
       current.projectId === project.id ? { ...current, projectId: '' } : current
     )
+    if (entries.some((entry) => entry.id === editingEntryId && entry.projectId === project.id)) cancelEntryEdit()
     if (documentProjectId === project.id) setDocumentProjectId('')
   }
   function sendEmail() {
@@ -573,13 +595,15 @@ export default function FreelancerPanel({
         </form>
 
         <form
+          ref={entryFormRef}
           onSubmit={addEntry}
           className="rounded-2xl border border-cozy-border bg-cozy-panel p-5"
         >
-          <h3 className="font-semibold text-cozy-text">Apontar horas</h3>
+          <h3 className="font-semibold text-cozy-text">{editingEntryId ? 'Editar apontamento' : 'Apontar horas'}</h3>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <select
               required
+              aria-label="Projeto do apontamento"
               value={entryForm.projectId}
               onChange={(e) =>
                 setEntryForm({ ...entryForm, projectId: e.target.value })
@@ -627,6 +651,7 @@ export default function FreelancerPanel({
               className="rounded-xl border border-cozy-border px-3 py-2 text-sm"
             />
             <input
+              aria-label="Descrição do apontamento"
               placeholder="Atividade/tarefa"
               value={entryForm.description}
               onChange={(e) =>
@@ -635,9 +660,13 @@ export default function FreelancerPanel({
               className="rounded-xl border border-cozy-border px-3 py-2 text-sm sm:col-span-2"
             />
           </div>
-          <button className="mt-4 flex items-center gap-1 rounded-xl bg-cozy-sage px-3 py-2 text-sm font-medium text-white">
-            <Plus size={15} /> Registrar horas
-          </button>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button className="flex items-center gap-1 rounded-xl bg-cozy-sage px-3 py-2 text-sm font-medium text-white">
+              {editingEntryId ? <Pencil size={15} /> : <Plus size={15} />}
+              {editingEntryId ? 'Salvar apontamento' : 'Registrar horas'}
+            </button>
+            {editingEntryId && <button type="button" onClick={cancelEntryEdit} className="rounded-xl border border-cozy-border px-3 py-2 text-sm">Cancelar edição</button>}
+          </div>
         </form>
       </div>
 
@@ -734,6 +763,7 @@ export default function FreelancerPanel({
                 </p>
               </div>
               <div className="text-right">
+                <button type="button" onClick={() => startEntryEdit(entry)} aria-label={'Editar apontamento de ' + entry.date + ' às ' + entry.start} className="mb-1 inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-cozy-accent hover:bg-cozy-accent/10"><Pencil size={14}/> Editar{isEntryClosed(entry, payments) ? ' · período fechado' : ''}</button>
                 <p className="font-medium text-cozy-accent">{hours(entry.minutes)}</p>
                 {projectById.get(entry.projectId)?.billingType === 'hour' ? (
                   <p className="text-xs text-cozy-muted">
